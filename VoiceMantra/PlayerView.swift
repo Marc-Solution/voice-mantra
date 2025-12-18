@@ -1,141 +1,227 @@
 //
 //  PlayerView.swift
-//  Appformations
+//  VoiceMantra
 //
-//  Created for Appformations
+//  Created for VoiceMantra
 //
 
 import SwiftUI
+import SwiftData
+import AVFoundation
 
 /// Wrapper type for programmatic navigation to PlayerView
-/// This distinguishes player navigation from list detail navigation
 struct PlayerDestination: Hashable {
-  let list: AffirmationList
+    let listId: PersistentIdentifier
+    let list: AffirmationList
+    
+    init(list: AffirmationList) {
+        self.listId = list.persistentModelID
+        self.list = list
+    }
+    
+    static func == (lhs: PlayerDestination, rhs: PlayerDestination) -> Bool {
+        lhs.listId == rhs.listId
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(listId)
+    }
 }
 
 struct PlayerView: View {
-  @EnvironmentObject var store: AppStore
-  @Environment(\.dismiss) private var dismiss
-  
-  let list: AffirmationList
-  
-  // Get the latest list data from store
-  private var currentList: AffirmationList? {
-    store.lists.first(where: { $0.id == list.id })
-  }
-  
-  private var displayName: String {
-    currentList?.name ?? list.name
-  }
-  
-  private var affirmations: [Affirmation] {
-    currentList?.affirmations ?? list.affirmations
-  }
-  
-  var body: some View {
-    ZStack {
-      // Background gradient
-      LinearGradient(
-        gradient: Gradient(colors: [
-          Color(UIColor.systemBackground),
-          Color.blue.opacity(0.05)
-        ]),
-        startPoint: .top,
-        endPoint: .bottom
-      )
-      .ignoresSafeArea()
-      
-      VStack(spacing: 32) {
-        Spacer()
-        
-        // Placeholder icon
-        Image(systemName: "waveform.circle.fill")
-          .font(.system(size: 120))
-          .foregroundStyle(
+    @Environment(\.dismiss) private var dismiss
+    
+    let list: AffirmationList
+    
+    @State private var currentIndex: Int = 0
+    @State private var isPlaying: Bool = false
+    @State private var audioPlayer: AVAudioPlayer?
+    
+    private var affirmations: [Affirmation] {
+        list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })
+    }
+    
+    private var currentAffirmation: Affirmation? {
+        guard !affirmations.isEmpty, currentIndex < affirmations.count else { return nil }
+        return affirmations[currentIndex]
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background gradient
             LinearGradient(
-              gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
-              startPoint: .topLeading,
-              endPoint: .bottomTrailing
+                gradient: Gradient(colors: [
+                    Color(UIColor.systemBackground),
+                    Color.blue.opacity(0.05)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
             )
-          )
-          .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
-        
-        // List name
-        VStack(spacing: 8) {
-          Text("Player Screen for:")
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-          
-          Text(displayName)
-            .font(.title)
-            .fontWeight(.bold)
-            .foregroundColor(.primary)
-            .multilineTextAlignment(.center)
+            .ignoresSafeArea()
+            
+            VStack(spacing: 32) {
+                Spacer()
+                
+                // Waveform icon
+                Image(systemName: isPlaying ? "waveform.circle.fill" : "waveform.circle")
+                    .font(.system(size: 120))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
+                    .animation(.easeInOut(duration: 0.3), value: isPlaying)
+                
+                // List name & current affirmation
+                VStack(spacing: 12) {
+                    Text(list.title)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    if let affirmation = currentAffirmation {
+                        Text(affirmation.text)
+                            .font(.title2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                            .animation(.easeInOut, value: currentIndex)
+                    } else {
+                        Text("No affirmations to play")
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Progress indicator
+                if !affirmations.isEmpty {
+                    Text("\(currentIndex + 1) of \(affirmations.count)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(20)
+                }
+                
+                Spacer()
+                
+                // Playback controls
+                HStack(spacing: 40) {
+                    Button(action: previousAffirmation) {
+                        Image(systemName: "backward.fill")
+                            .font(.title2)
+                            .foregroundColor(currentIndex > 0 ? .primary : .secondary.opacity(0.5))
+                    }
+                    .disabled(currentIndex == 0)
+                    
+                    Button(action: togglePlayback) {
+                        Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 72))
+                            .foregroundColor(currentAffirmation?.audioFileName != nil ? .blue : .secondary)
+                    }
+                    .disabled(currentAffirmation?.audioFileName == nil)
+                    
+                    Button(action: nextAffirmation) {
+                        Image(systemName: "forward.fill")
+                            .font(.title2)
+                            .foregroundColor(currentIndex < affirmations.count - 1 ? .primary : .secondary.opacity(0.5))
+                    }
+                    .disabled(currentIndex >= affirmations.count - 1)
+                }
+                .padding(.bottom, 60)
+            }
+            .padding()
         }
-        
-        // Affirmation count
-        Text("\(affirmations.count) affirmation\(affirmations.count == 1 ? "" : "s") to play")
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
-          .background(Color(UIColor.secondarySystemBackground))
-          .cornerRadius(20)
-        
-        Spacer()
-        
-        // Placeholder controls (for future implementation)
-        HStack(spacing: 40) {
-          Button(action: {
-            // Previous - future implementation
-          }) {
-            Image(systemName: "backward.fill")
-              .font(.title2)
-              .foregroundColor(.secondary)
-          }
-          
-          Button(action: {
-            // Play/Pause - future implementation
-          }) {
-            Image(systemName: "play.circle.fill")
-              .font(.system(size: 72))
-              .foregroundColor(.blue)
-          }
-          
-          Button(action: {
-            // Next - future implementation
-          }) {
-            Image(systemName: "forward.fill")
-              .font(.title2)
-              .foregroundColor(.secondary)
-          }
+        .navigationTitle("Now Playing")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            stopPlayback()
         }
-        .padding(.bottom, 60)
-      }
-      .padding()
     }
-    .navigationTitle("Now Playing")
-    .navigationBarTitleDisplayMode(.inline)
-  }
-}
-
-// Convenience initializer from PlayerDestination
-extension PlayerView {
-  init(destination: PlayerDestination) {
-    self.list = destination.list
-  }
-}
-
-struct PlayerView_Previews: PreviewProvider {
-  static var previews: some View {
-    NavigationStack {
-      PlayerView(list: AffirmationList(name: "Morning Affirmations", affirmations: [
-        Affirmation(id: UUID(), title: "I am confident"),
-        Affirmation(id: UUID(), title: "I am successful")
-      ]))
+    
+    // MARK: - Playback Controls
+    private func togglePlayback() {
+        if isPlaying {
+            stopPlayback()
+        } else {
+            playCurrentAffirmation()
+        }
     }
-    .environmentObject(AppStore())
-  }
+    
+    private func playCurrentAffirmation() {
+        guard let affirmation = currentAffirmation,
+              let url = affirmation.audioFileURL else { return }
+        
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+            
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.delegate = PlayerAudioDelegate.shared
+            PlayerAudioDelegate.shared.onFinish = { [self] in
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                    // Auto-advance to next affirmation
+                    if self.currentIndex < self.affirmations.count - 1 {
+                        self.currentIndex += 1
+                        // Small delay before playing next
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self.playCurrentAffirmation()
+                        }
+                    }
+                }
+            }
+            audioPlayer?.play()
+            isPlaying = true
+        } catch {
+            print("Failed to play audio: \(error)")
+            isPlaying = false
+        }
+    }
+    
+    private func stopPlayback() {
+        audioPlayer?.stop()
+        audioPlayer = nil
+        isPlaying = false
+    }
+    
+    private func previousAffirmation() {
+        stopPlayback()
+        if currentIndex > 0 {
+            currentIndex -= 1
+        }
+    }
+    
+    private func nextAffirmation() {
+        stopPlayback()
+        if currentIndex < affirmations.count - 1 {
+            currentIndex += 1
+        }
+    }
 }
 
+// MARK: - Audio Player Delegate
+private class PlayerAudioDelegate: NSObject, AVAudioPlayerDelegate {
+    static let shared = PlayerAudioDelegate()
+    var onFinish: (() -> Void)?
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onFinish?()
+    }
+}
 
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: AffirmationList.self, Affirmation.self, configurations: config)
+    let sampleList = AffirmationList(title: "Morning Affirmations")
+    
+    return NavigationStack {
+        PlayerView(list: sampleList)
+    }
+    .modelContainer(container)
+}

@@ -1,225 +1,202 @@
 import SwiftUI
+import SwiftData
 
 struct ListDetailView: View {
-  @EnvironmentObject var store: AppStore
-  @Environment(\.dismiss) private var dismiss
-  
-  let listId: UUID
-  let listName: String
-  
-  @State private var showCreateAffirmation = false
-  @State private var showRenameAlert = false
-  @State private var showDeleteAlert = false
-  @State private var newListName = ""
-  
-  // Computed property to always get the latest list from the store
-  private var currentList: AffirmationList? {
-    store.lists.first(where: { $0.id == listId })
-  }
-  
-  // Get the current name from store (for live updates after rename)
-  private var displayName: String {
-    currentList?.name ?? listName
-  }
-  
-  private var affirmations: [Affirmation] {
-    currentList?.affirmations ?? []
-  }
-
-  var body: some View {
-    ZStack {
-      // Background
-      Color(UIColor.systemGroupedBackground)
-        .ignoresSafeArea()
-      
-      if affirmations.isEmpty {
-        // Empty state placeholder
-        VStack(spacing: 16) {
-          Image(systemName: "waveform.circle")
-            .font(.system(size: 60))
-            .foregroundColor(.secondary.opacity(0.5))
-          
-          Text("No affirmations yet")
-            .font(.headline)
-            .foregroundColor(.secondary)
-          
-          Text("Tap '+' to record your first one")
-            .font(.subheadline)
-            .foregroundColor(.secondary.opacity(0.8))
-        }
-        .padding()
-      } else {
-        // Affirmations list with card styling and swipe-to-delete
-        List {
-          ForEach(affirmations) { aff in
-            NavigationLink(destination: makeEditorView(for: aff)) {
-              HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text(aff.title)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                  
-                  if let d = aff.durationSeconds {
-                    HStack(spacing: 4) {
-                      Image(systemName: "waveform")
-                        .font(.caption2)
-                      Text("\(d) sec")
-                        .font(.caption2)
-                    }
-                    .foregroundColor(.secondary)
-                  }
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    @Bindable var list: AffirmationList
+    
+    @State private var showCreateAffirmation = false
+    @State private var showRenameAlert = false
+    @State private var showDeleteAlert = false
+    @State private var newListName = ""
+    @State private var affirmationToEdit: Affirmation? = nil
+    
+    var body: some View {
+        ZStack {
+            // Background
+            Color(UIColor.systemGroupedBackground)
+                .ignoresSafeArea()
+            
+            if list.affirmations.isEmpty {
+                // Empty state placeholder
+                VStack(spacing: 16) {
+                    Image(systemName: "waveform.circle")
+                        .font(.system(size: 60))
+                        .foregroundColor(.secondary.opacity(0.5))
+                    
+                    Text("No affirmations yet")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    Text("Tap '+' to record your first one")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary.opacity(0.8))
                 }
-                
-                Spacer()
-              }
+                .padding()
+            } else {
+                // Affirmations list
+                List {
+                    ForEach(list.affirmations.sorted(by: { $0.createdAt > $1.createdAt })) { affirmation in
+                        Button(action: {
+                            affirmationToEdit = affirmation
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Display first 20 characters of text property
+                                    Text(affirmation.displayName)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    HStack(spacing: 8) {
+                                        if affirmation.audioFileName != nil {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "waveform")
+                                                    .font(.caption2)
+                                                Text("Audio")
+                                                    .font(.caption2)
+                                            }
+                                            .foregroundColor(.blue)
+                                        }
+                                        
+                                        Text(affirmation.createdAt, style: .date)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
+                    }
+                    .onDelete(perform: deleteAffirmations)
+                }
+                .listStyle(InsetGroupedListStyle())
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 80)
+                }
             }
-            .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
-          }
-          .onDelete(perform: deleteAffirmations)
+            
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showCreateAffirmation = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Circle())
+                            .shadow(color: Color.blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
+                }
+            }
         }
-        .listStyle(InsetGroupedListStyle())
-        .safeAreaInset(edge: .bottom) {
-          // Space for FAB
-          Color.clear.frame(height: 80)
+        .navigationTitle(list.title)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button(action: {
+                        newListName = list.title
+                        showRenameAlert = true
+                    }) {
+                        Label("Rename List", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive, action: {
+                        showDeleteAlert = true
+                    }) {
+                        Label("Delete List", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 17))
+                }
+            }
         }
-      }
-      
-      // Floating Action Button
-      VStack {
-        Spacer()
-        HStack {
-          Spacer()
-          Button(action: {
-            showCreateAffirmation = true
-          }) {
-            Image(systemName: "plus")
-              .font(.system(size: 24, weight: .semibold))
-              .foregroundColor(.white)
-              .frame(width: 60, height: 60)
-              .background(
-                LinearGradient(
-                  gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
-                  startPoint: .topLeading,
-                  endPoint: .bottomTrailing
-                )
-              )
-              .clipShape(Circle())
-              .shadow(color: Color.blue.opacity(0.4), radius: 8, x: 0, y: 4)
-          }
-          .padding(.trailing, 20)
-          .padding(.bottom, 20)
+        .alert("Rename List", isPresented: $showRenameAlert) {
+            TextField("List name", text: $newListName)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
+                let trimmed = newListName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    list.title = trimmed
+                }
+            }
+        } message: {
+            Text("Enter a new name for this list.")
         }
-      }
-    }
-    .navigationTitle(displayName)
-    .toolbar {
-      ToolbarItem(placement: .navigationBarTrailing) {
-        Menu {
-          Button(action: {
-            newListName = displayName
-            showRenameAlert = true
-          }) {
-            Label("Rename List", systemImage: "pencil")
-          }
-          
-          Button(role: .destructive, action: {
-            showDeleteAlert = true
-          }) {
-            Label("Delete List", systemImage: "trash")
-          }
-        } label: {
-          Image(systemName: "ellipsis.circle")
-            .font(.system(size: 17))
+        .alert("Delete \(list.title)?", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                // Delete audio files first
+                for affirmation in list.affirmations {
+                    deleteAudioFile(for: affirmation)
+                }
+                modelContext.delete(list)
+                // Explicitly save before dismissing to persist deletion
+                try? modelContext.save()
+                dismiss()
+            }
+        } message: {
+            Text("This will also delete all recorded affirmations inside. This action cannot be undone.")
         }
-      }
-    }
-    .alert("Rename List", isPresented: $showRenameAlert) {
-      TextField("List name", text: $newListName)
-      Button("Cancel", role: .cancel) { }
-      Button("Save") {
-        let trimmed = newListName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-          store.renameList(id: listId, newName: trimmed)
+        .sheet(isPresented: $showCreateAffirmation) {
+            AffirmationEditorView(list: list)
         }
-      }
-    } message: {
-      Text("Enter a new name for this list.")
-    }
-    .alert("Delete \(displayName)?", isPresented: $showDeleteAlert) {
-      Button("Cancel", role: .cancel) { }
-      Button("Delete", role: .destructive) {
-        store.deleteList(id: listId)
-        dismiss()
-      }
-    } message: {
-      Text("This will also delete all recorded affirmations inside. This action cannot be undone.")
-    }
-    .sheet(isPresented: $showCreateAffirmation) {
-      AffirmationEditorView(
-        vm: AffirmationEditorViewModel(),
-        saveAction: { transcript, audioURL, duration in
-          // Generate title from first 20 characters of transcript
-          let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-          let title = String(trimmed.prefix(20))
-          let finalTitle = title.isEmpty ? "Untitled" : (trimmed.count > 20 ? title + "..." : title)
-          
-          // Create and save via store with this list's ID
-          let created = store.createAffirmation(title: finalTitle, listId: listId)
-          
-          // Update created fields
-          var updated = created
-          updated.transcript = transcript
-          updated.durationSeconds = audioURL != nil ? Int(duration) : nil
-          
-          // Persist to this specific list
-          store.saveAffirmation(updated, toListId: listId)
+        .sheet(item: $affirmationToEdit) { affirmation in
+            AffirmationEditorView(list: list, existingAffirmation: affirmation)
         }
-      )
-      .environmentObject(store)
     }
-  }
-  
-  // MARK: - Actions
-  private func deleteAffirmations(at offsets: IndexSet) {
-    for index in offsets {
-      let affirmation = affirmations[index]
-      store.deleteAffirmation(id: affirmation.id, fromListId: listId)
+    
+    // MARK: - Actions
+    private func deleteAffirmations(at offsets: IndexSet) {
+        let sortedAffirmations = list.affirmations.sorted(by: { $0.createdAt > $1.createdAt })
+        for index in offsets {
+            let affirmation = sortedAffirmations[index]
+            deleteAudioFile(for: affirmation)
+            modelContext.delete(affirmation)
+        }
+        // Explicitly save to persist deletion
+        try? modelContext.save()
     }
-  }
-  
-  // MARK: - Editor View Factory
-  /// Creates an editor view for an existing affirmation with proper save action
-  private func makeEditorView(for affirmation: Affirmation) -> some View {
-    AffirmationEditorView(
-      vm: AffirmationEditorViewModel(transcript: affirmation.transcript ?? ""),
-      saveAction: { transcript, audioURL, duration in
-        // Generate updated title from first 20 characters of transcript
-        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        let title = String(trimmed.prefix(20))
-        let finalTitle = title.isEmpty ? "Untitled" : (trimmed.count > 20 ? title + "..." : title)
-        
-        // Create updated affirmation with same ID
-        var updated = affirmation
-        updated.title = finalTitle
-        updated.transcript = transcript
-        updated.durationSeconds = audioURL != nil ? Int(duration) : affirmation.durationSeconds
-        
-        // Save to store (this will update the existing affirmation)
-        store.saveAffirmation(updated, toListId: listId)
-      }
-    )
-    .environmentObject(store)
-  }
+    
+    private func deleteAudioFile(for affirmation: Affirmation) {
+        guard let fileName = affirmation.audioFileName else { return }
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsPath.appendingPathComponent(fileName)
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 }
 
-// Convenience initializer to maintain backward compatibility
-extension ListDetailView {
-  init(list: AffirmationList) {
-    self.listId = list.id
-    self.listName = list.name
-  }
+// Preview
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: AffirmationList.self, Affirmation.self, configurations: config)
+    let sampleList = AffirmationList(title: "Morning Affirmations")
+    
+    return NavigationStack {
+        ListDetailView(list: sampleList)
+    }
+    .modelContainer(container)
 }
-
-
