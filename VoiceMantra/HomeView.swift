@@ -11,7 +11,7 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \AffirmationList.createdAt, order: .reverse) private var lists: [AffirmationList]
+    @Query(sort: \AffirmationList.createdAt, order: .forward) private var lists: [AffirmationList]
     
     @State private var showCreateList = false
     @State private var navigationPath = NavigationPath()

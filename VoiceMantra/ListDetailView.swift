@@ -38,7 +38,7 @@ struct ListDetailView: View {
             } else {
                 // Affirmations list
                 List {
-                    ForEach(list.affirmations.sorted(by: { $0.createdAt > $1.createdAt })) { affirmation in
+                    ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
                         Button(action: {
                             affirmationToEdit = affirmation
                         }) {
@@ -171,7 +171,7 @@ struct ListDetailView: View {
     
     // MARK: - Actions
     private func deleteAffirmations(at offsets: IndexSet) {
-        let sortedAffirmations = list.affirmations.sorted(by: { $0.createdAt > $1.createdAt })
+        let sortedAffirmations = list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })
         for index in offsets {
             let affirmation = sortedAffirmations[index]
             deleteAudioFile(for: affirmation)
