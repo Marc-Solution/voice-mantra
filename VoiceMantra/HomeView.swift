@@ -97,8 +97,26 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showCreateList = true }) {
-                        Image(systemName: "plus")
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Create List")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(Color(UIColor.systemBackground))
+                                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(UIColor.separator).opacity(0.3), lineWidth: 0.5)
+                        )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .sheet(isPresented: $showCreateList, onDismiss: {
