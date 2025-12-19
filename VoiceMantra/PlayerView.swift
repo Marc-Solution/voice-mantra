@@ -43,8 +43,9 @@ struct PlayerView: View {
     // MARK: - State
     @State private var currentIndex: Int = 0
     @State private var playbackState: PlaybackState = .stopped
-    @State private var pauseCountdown: Int = 5
+    @State private var pauseCountdown: Int = 10
     @State private var countdownTimer: Timer?
+    @State private var isLoopingBack: Bool = false  // True when about to restart from beginning
     
     /// Task that manages the entire playback sequence
     @State private var playbackTask: Task<Void, Never>?
@@ -133,9 +134,11 @@ struct PlayerView: View {
                     
                     // Status text
                     if playbackState == .pauseBetween {
-                        Text("Next affirmation in \(pauseCountdown)s...")
+                        Text(isLoopingBack 
+                             ? "Restarting in \(pauseCountdown)s..." 
+                             : "Next affirmation in \(pauseCountdown)s...")
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(isLoopingBack ? .orange : .blue)
                             .padding(.top, 4)
                     }
                 }
@@ -215,83 +218,88 @@ struct PlayerView: View {
         }
     }
     
-    /// Async function that plays through all affirmations with 5-second gaps
+    /// Async function that plays through all affirmations in an infinite loop with 10-second reflection gaps
     @MainActor
     private func playSequence() async {
-        print("🎵 Starting playback sequence from index \(currentIndex)")
+        print("🎵 Starting infinite playback sequence from index \(currentIndex)")
         
-        while currentIndex < affirmations.count {
-            // Check for cancellation
+        // Guard: Ensure list is not empty to prevent infinite crash loop
+        guard !affirmations.isEmpty else {
+            print("⚠️ Cannot start playback - no affirmations with audio")
+            playbackState = .stopped
+            return
+        }
+        
+        // Infinite loop - plays until user stops
+        while true {
+            // Check for cancellation at start of each loop iteration
             if Task.isCancelled {
                 print("⏹️ Playback sequence cancelled")
                 return
             }
             
-            guard let affirmation = affirmations[safe: currentIndex],
-                  let url = affirmation.audioFileURL else {
-                print("⚠️ Skipping index \(currentIndex) - no valid audio URL")
-                currentIndex += 1
-                continue
-            }
-            
-            // Check if file exists
-            guard FileManager.default.fileExists(atPath: url.path) else {
-                print("❌ File not found at: \(url)")
-                currentIndex += 1
-                continue
-            }
-            
             // Play current affirmation
-            playbackState = .playing
-            print("▶️ Playing affirmation \(currentIndex + 1)/\(affirmations.count): \(url.lastPathComponent)")
+            if let affirmation = affirmations[safe: currentIndex],
+               let url = affirmation.audioFileURL,
+               FileManager.default.fileExists(atPath: url.path) {
+                
+                playbackState = .playing
+                print("▶️ Playing affirmation \(currentIndex + 1)/\(affirmations.count): \(url.lastPathComponent)")
+                
+                await playAudio(url: url)
+                
+                // Check for cancellation after playback
+                if Task.isCancelled {
+                    print("⏹️ Playback sequence cancelled after audio finished")
+                    return
+                }
+            } else {
+                print("⚠️ Skipping index \(currentIndex) - no valid audio or file not found")
+            }
             
-            await playAudio(url: url)
+            // 10-second reflection pause (always, including before looping back)
+            playbackState = .pauseBetween
+            pauseCountdown = 10
             
-            // Check for cancellation after playback
-            if Task.isCancelled {
-                print("⏹️ Playback sequence cancelled after audio finished")
+            // Check if we're at the last affirmation (about to loop)
+            isLoopingBack = currentIndex >= affirmations.count - 1
+            if isLoopingBack {
+                print("🔄 Loop Restarting: Moving from last affirmation back to the beginning.")
+                print("⏸️ 10-second reflection pause before restarting loop...")
+            } else {
+                print("⏸️ 10-second reflection pause before next affirmation...")
+            }
+            
+            // Start countdown timer for UI
+            startCountdownTimer()
+            
+            // Wait 10 seconds for user reflection
+            do {
+                try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
+            } catch {
+                // Task was cancelled
+                print("⏹️ Sleep interrupted - playback stopped")
+                stopCountdownTimer()
                 return
             }
             
-            // Check if there are more affirmations
-            if currentIndex < affirmations.count - 1 {
-                // Enter pause state for reflection time
-                playbackState = .pauseBetween
-                pauseCountdown = 10
-                print("⏸️ 10-second reflection pause before next affirmation...")
-                
-                // Start countdown timer for UI
-                startCountdownTimer()
-                
-                // Wait 10 seconds for user reflection (using Task.sleep for modern async/await)
-                do {
-                    try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
-                } catch {
-                    // Task was cancelled
-                    print("⏹️ Sleep interrupted - playback stopped")
-                    stopCountdownTimer()
-                    return
-                }
-                
-                stopCountdownTimer()
-                
-                // Check for cancellation after sleep
-                if Task.isCancelled {
-                    print("⏹️ Playback sequence cancelled during pause")
-                    return
-                }
-                
-                // Move to next affirmation
-                currentIndex += 1
+            stopCountdownTimer()
+            
+            // Check for cancellation after sleep
+            if Task.isCancelled {
+                print("⏹️ Playback sequence cancelled during pause")
+                return
+            }
+            
+            // Move to next affirmation or loop back to beginning
+            if isLoopingBack {
+                currentIndex = 0
+                isLoopingBack = false  // Reset for next iteration
+                print("🔁 Looped back to first affirmation")
             } else {
-                // No more affirmations - sequence complete
-                break
+                currentIndex += 1
             }
         }
-        
-        // Sequence finished naturally
-        playbackState = .stopped
-        print("✅ Playlist finished")
     }
     
     /// Plays a single audio file and waits for completion
@@ -342,7 +350,9 @@ struct PlayerView: View {
         // Stop any playing audio
         audioService.stopListPlayback()
         
+        // Reset state
         playbackState = .stopped
+        isLoopingBack = false
         print("⏹️ Playback stopped by user")
     }
     
