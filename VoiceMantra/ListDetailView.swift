@@ -42,7 +42,18 @@ struct ListDetailView: View {
                         Button(action: {
                             affirmationToEdit = affirmation
                         }) {
-                            HStack {
+                            HStack(spacing: 12) {
+                                // Status Icon - Blue mic for complete, gray for draft
+                                ZStack {
+                                    Circle()
+                                        .fill(affirmation.isDraft ? Color(UIColor.systemGray5) : Color.blue.opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    
+                                    Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(affirmation.isDraft ? .gray : .blue)
+                                }
+                                
                                 VStack(alignment: .leading, spacing: 4) {
                                     // Display first 20 characters of text property
                                     Text(affirmation.displayName)
@@ -52,15 +63,18 @@ struct ListDetailView: View {
                                         .multilineTextAlignment(.leading)
                                     
                                     HStack(spacing: 8) {
-                                        if affirmation.audioFileName != nil {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "waveform")
-                                                    .font(.caption2)
-                                                Text("Audio")
-                                                    .font(.caption2)
-                                            }
-                                            .foregroundColor(.blue)
+                                        // Status badge
+                                        HStack(spacing: 4) {
+                                            Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
+                                                .font(.caption2)
+                                            Text(affirmation.isDraft ? "Draft" : "Complete")
+                                                .font(.caption2)
                                         }
+                                        .foregroundColor(affirmation.isDraft ? .secondary : .green)
+                                        
+                                        Text("•")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
                                         
                                         Text(affirmation.createdAt, style: .date)
                                             .font(.caption2)

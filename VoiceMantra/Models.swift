@@ -36,6 +36,11 @@ final class Affirmation {
         self.list = list
     }
     
+    /// Returns true if no audio has been recorded (text only)
+    var isDraft: Bool {
+        audioFileName == nil || audioFileName?.isEmpty == true
+    }
+    
     /// Returns the display name (first 20 characters of text)
     var displayName: String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

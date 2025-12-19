@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 @main
 struct VoiceMantraApp: App {
@@ -24,10 +25,27 @@ struct VoiceMantraApp: App {
         }
     }()
     
+    init() {
+        // Configure audio session for playback
+        // This ensures audio plays even with silent switch on or screen locked
+        configureAudioSession()
+    }
+    
     var body: some Scene {
         WindowGroup {
             HomeView()
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func configureAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+            print("✅ Audio session configured for playback")
+        } catch {
+            print("❌ Failed to configure audio session: \(error)")
+        }
     }
 }
