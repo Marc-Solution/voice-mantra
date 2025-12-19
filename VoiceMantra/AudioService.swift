@@ -323,6 +323,92 @@ final class AudioService: NSObject, ObservableObject {
         onPlaybackFinish = nil
     }
     
+    // MARK: - List Playback (for PlayerView)
+    
+    /// Plays an affirmation audio file with robust error handling and retry logic
+    /// - Parameters:
+    ///   - url: The URL of the audio file
+    ///   - onFinish: Callback when playback completes (successfully or not)
+    func playAffirmation(url: URL, onFinish: @escaping () -> Void) {
+        // Reset state
+        playbackError = nil
+        onPlaybackFinish = onFinish
+        
+        // Step 1: Check if file exists
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            print("❌ File not found at: \(url)")
+            playbackError = "Audio file not found"
+            onFinish()
+            return
+        }
+        
+        print("▶️ Starting playback for: \(url.lastPathComponent)")
+        
+        // Step 2: Configure audio session fresh for this playback
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+            try session.setActive(true)
+            print("✅ Audio session configured for playback")
+        } catch {
+            print("⚠️ Audio session configuration warning: \(error.localizedDescription)")
+            // Continue anyway - sometimes playback still works
+        }
+        
+        // Step 3: Create player with retry logic
+        do {
+            player = try createPlayer(from: url)
+            player?.delegate = self
+            player?.volume = 1.0
+            
+            guard player?.prepareToPlay() == true else {
+                throw NSError(domain: "AudioService", code: 20, userInfo: [NSLocalizedDescriptionKey: "prepareToPlay() failed"])
+            }
+            
+            // Step 4: Attempt playback
+            if let success = player?.play(), success {
+                isPlaying = true
+                print("✅ Playback started for: \(url.lastPathComponent)")
+            } else {
+                // Retry once
+                print("⚠️ First play attempt failed, retrying...")
+                player = nil
+                player = try createPlayer(from: url)
+                player?.delegate = self
+                player?.volume = 1.0
+                _ = player?.prepareToPlay()
+                
+                if let retrySuccess = player?.play(), retrySuccess {
+                    isPlaying = true
+                    print("✅ Retry successful for: \(url.lastPathComponent)")
+                } else {
+                    throw NSError(domain: "AudioService", code: 21, userInfo: [NSLocalizedDescriptionKey: "Playback failed after retry"])
+                }
+            }
+            
+        } catch {
+            print("❌ Failed to play affirmation: \(error.localizedDescription)")
+            playbackError = error.localizedDescription
+            isPlaying = false
+            player = nil
+            onFinish()
+        }
+    }
+    
+    /// Creates an AVAudioPlayer from a URL
+    private func createPlayer(from url: URL) throws -> AVAudioPlayer {
+        return try AVAudioPlayer(contentsOf: url)
+    }
+    
+    /// Stops any current list playback
+    func stopListPlayback() {
+        player?.stop()
+        player = nil
+        isPlaying = false
+        onPlaybackFinish = nil
+        print("⏹️ List playback stopped")
+    }
+    
     // MARK: - File Management
     
     func saveTempToDocuments() -> String? {
