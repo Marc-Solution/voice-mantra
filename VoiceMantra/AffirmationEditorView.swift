@@ -5,13 +5,16 @@ import AVFoundation
 struct AffirmationEditorView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @StateObject var vm: AffirmationEditorViewModel
+  @StateObject var vm: AffirmationEditorViewModel
     
     /// The list to add the affirmation to
     let list: AffirmationList
     
     /// Optional existing affirmation being edited (nil for new affirmation)
     var existingAffirmation: Affirmation?
+    
+    // MARK: - Focus Management
+    @FocusState private var isTextFieldFocused: Bool
     
     init(list: AffirmationList, existingAffirmation: Affirmation? = nil) {
         self.list = list
@@ -23,181 +26,202 @@ struct AffirmationEditorView: View {
             text: initialText,
             existingAudioFileName: existingAudioFileName
         ))
-    }
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // MARK: - Text Input Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Your Affirmation")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(.secondary)
-                        
-                        TextField("I am confident, capable, and strong...", text: $vm.text, axis: .vertical)
-                            .textFieldStyle(.plain)
-                            .font(.body)
-                            .lineLimit(4...8)
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(UIColor.secondarySystemBackground))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(UIColor.separator).opacity(0.5), lineWidth: 1)
-                            )
+  }
+
+  var body: some View {
+    NavigationView {
+            ZStack {
+                // Background - tappable to dismiss keyboard
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isTextFieldFocused = false
                     }
-                    .padding(.horizontal)
-                    
-                    // MARK: - Recording Section
-                    VStack(spacing: 20) {
-                        // Waveform Visualization Area
-                        WaveformView(isRecording: vm.isRecording, isPlaying: vm.isPlaying)
-                            .frame(height: 80)
-                            .padding(.horizontal)
-                        
-                        // Progress Bar
-                        VStack(spacing: 8) {
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    // Background track
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color(UIColor.systemGray5))
-                                        .frame(height: 8)
-                                    
-                                    // Progress fill
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.blue, Color.blue.opacity(0.7)],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .frame(width: geometry.size.width * vm.progress, height: 8)
-                                        .animation(.linear(duration: 0.1), value: vm.progress)
-                                }
-                            }
-                            .frame(height: 8)
-                            .padding(.horizontal)
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // MARK: - Text Input Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your Affirmation")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.secondary)
                             
-                            // Timer Display
-                            Text(vm.countdownText)
-                                .font(.system(size: 48, weight: .light, design: .monospaced))
-                                .foregroundColor(vm.isRecording ? .red : .primary)
-                                .contentTransition(.numericText())
-                                .animation(.easeInOut(duration: 0.1), value: vm.countdownText)
+                            TextField("I am confident, capable, and strong...", text: $vm.text, axis: .vertical)
+                                .textFieldStyle(.plain)
+                                .font(.body)
+                                .lineLimit(4...8)
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(UIColor.secondarySystemBackground))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(UIColor.separator).opacity(0.5), lineWidth: 1)
+                                )
+                                .focused($isTextFieldFocused)
                         }
+                        .padding(.horizontal)
                         
-                        // Control Buttons
-                        HStack(spacing: 32) {
-                            // Spacer for balance
-                            Color.clear
-                                .frame(width: 56, height: 56)
+                        // MARK: - Recording Section
+                        VStack(spacing: 20) {
+                            // Waveform Visualization Area
+                            WaveformView(isRecording: vm.isRecording, isPlaying: vm.isPlaying)
+                                .frame(height: 80)
+                                .padding(.horizontal)
                             
-                            // Main Record/Stop Button
-                            Button(action: {
-                                requestPermissionAndToggle()
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(vm.isRecording ? Color.red : Color.blue)
-                                        .frame(width: 80, height: 80)
-                                        .shadow(color: (vm.isRecording ? Color.red : Color.blue).opacity(0.4), radius: 8, x: 0, y: 4)
-                                    
-                                    if vm.isRecording {
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(Color.white)
-                                            .frame(width: 28, height: 28)
-                                    } else {
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 28, height: 28)
+                            // Progress Bar
+                            VStack(spacing: 8) {
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        // Background track
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color(UIColor.systemGray5))
+                                            .frame(height: 8)
+                                        
+                                        // Progress fill
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color.blue, Color.blue.opacity(0.7)],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                            .frame(width: geometry.size.width * vm.progress, height: 8)
+                                            .animation(.linear(duration: 0.1), value: vm.progress)
                                     }
                                 }
+                                .frame(height: 8)
+                                .padding(.horizontal)
+                                
+                                // Timer Display
+                                Text(vm.countdownText)
+                                    .font(.system(size: 48, weight: .light, design: .monospaced))
+                                    .foregroundColor(vm.isRecording ? .red : .primary)
+                                    .contentTransition(.numericText())
+                                    .animation(.easeInOut(duration: 0.1), value: vm.countdownText)
                             }
-                            .buttonStyle(PlainButtonStyle())
-                            .disabled(vm.isPlaying)
                             
-                            // Play/Preview Button (appears after recording)
-                            Button(action: {
-                                vm.togglePlayback()
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(UIColor.secondarySystemBackground))
-                                        .frame(width: 56, height: 56)
-                                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                    
-                                    Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundColor(vm.hasRecording ? .blue : .gray)
+                            // Control Buttons
+                            HStack(spacing: 32) {
+                                // Spacer for balance
+                                Color.clear
+                                    .frame(width: 56, height: 56)
+                                
+                                // Main Record/Stop Button
+                                Button(action: {
+                                    isTextFieldFocused = false
+                                    requestPermissionAndToggle()
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(vm.isRecording ? Color.red : Color.blue)
+                                            .frame(width: 80, height: 80)
+                                            .shadow(color: (vm.isRecording ? Color.red : Color.blue).opacity(0.4), radius: 8, x: 0, y: 4)
+                                        
+                                        if vm.isRecording {
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(Color.white)
+                                                .frame(width: 28, height: 28)
+                                        } else {
+                                            Circle()
+                                                .fill(Color.white)
+                                                .frame(width: 28, height: 28)
+                                        }
+                                    }
                                 }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .disabled(!vm.hasRecording || vm.isRecording)
-                            .opacity(vm.hasRecording ? 1 : 0.4)
-                        }
-                        
-                        // Recording Status Text
-                        Text(statusText)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .frame(height: 20)
-                    }
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(UIColor.systemBackground))
-                            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
-                    )
-                    .padding(.horizontal)
-                    
-                    // MARK: - Save Section
-                    VStack(spacing: 12) {
-                        Button(action: save) {
-                            HStack {
-                                if vm.willSaveAsDraft {
-                                    Image(systemName: "doc.text")
-                                    Text("Save as Draft")
-                                } else {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("Save Affirmation")
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(vm.isPlaying)
+                                
+                                // Play/Preview Button (appears after recording)
+                                Button(action: {
+                                    isTextFieldFocused = false
+                                    vm.togglePlayback()
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(UIColor.secondarySystemBackground))
+                                            .frame(width: 56, height: 56)
+                                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                        
+                                        Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
+                  .font(.system(size: 22))
+                                            .foregroundColor(vm.hasRecording ? .blue : .gray)
+                                    }
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(!vm.hasRecording || vm.isRecording)
+                                .opacity(vm.hasRecording ? 1 : 0.4)
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(vm.canSave ? Color.blue : Color.gray)
-                            )
+                            
+                            // Recording Status Text
+                            Text(statusText)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                                .frame(height: 20)
                         }
-                        .disabled(!vm.canSave || vm.isRecording)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(UIColor.systemBackground))
+                                .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+                        )
+                        .padding(.horizontal)
                         
-                        if vm.willSaveAsDraft && vm.canSave {
-                            Text("No audio recorded. This will be saved as a draft.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
+                        // MARK: - Save Section
+                        VStack(spacing: 12) {
+                            Button(action: save) {
+                                HStack {
+                                    if vm.willSaveAsDraft {
+                                        Image(systemName: "doc.text")
+                                        Text("Save as Draft")
+                                    } else {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text("Save Affirmation")
+                                    }
+                                }
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(vm.canSave ? Color.blue : Color.gray)
+                                )
+                            }
+                            .disabled(!vm.canSave || vm.isRecording)
+                            
+                            if vm.willSaveAsDraft && vm.canSave {
+                                Text("No audio recorded. This will be saved as a draft.")
+                .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 20)
+                    .padding(.top, 16)
                 }
-                .padding(.top, 16)
             }
-            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle(existingAffirmation == nil ? "New Affirmation" : "Edit Affirmation")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Cancel button in navigation bar
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         vm.onDismiss()
                         dismiss()
+                    }
+                }
+                
+                // Done button above keyboard
+                ToolbarItemGroup(placement: .keyboard) {
+              Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
                     }
                 }
             }
@@ -219,25 +243,28 @@ struct AffirmationEditorView: View {
             return "Recording ready"
         } else {
             return "Tap to record"
-        }
     }
-    
-    // MARK: - Actions
+  }
+
+  // MARK: - Actions
     
     private func requestPermissionAndToggle() {
-        vm.requestPermission { granted in
-            if granted {
+    vm.requestPermission { granted in
+      if granted {
                 if vm.isPlaying {
                     vm.stopPreview()
                 }
-                vm.toggleRecording()
-            } else {
-                print("Microphone permission denied")
-            }
-        }
+        vm.toggleRecording()
+      } else {
+        print("Microphone permission denied")
+      }
     }
-    
-    private func save() {
+  }
+
+  private func save() {
+        // Dismiss keyboard first
+        isTextFieldFocused = false
+        
         let trimmedText = vm.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
         
