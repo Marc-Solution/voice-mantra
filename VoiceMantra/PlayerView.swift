@@ -193,8 +193,37 @@ struct PlayerView: View {
         }
         .navigationTitle("Now Playing")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            autoStartPlayback()
+        }
         .onDisappear {
             stopPlayback()
+        }
+    }
+    
+    // MARK: - Auto-Start Logic
+    
+    /// Automatically starts playback when the view appears (if not already playing)
+    private func autoStartPlayback() {
+        // Guard: Don't restart if already playing
+        guard !isActive else {
+            print("▶️ Already playing - continuing current playback")
+            return
+        }
+        
+        // Guard: Ensure we have affirmations with audio to play
+        guard !affirmations.isEmpty else {
+            print("⚠️ No affirmations with audio - auto-play skipped")
+            return
+        }
+        
+        // Start playback with a small delay for smooth navigation transition
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Double-check we haven't started playing during the delay
+            guard !isActive else { return }
+            
+            print("🚀 Auto-starting playback on view appear")
+            startPlaybackSequence()
         }
     }
     
