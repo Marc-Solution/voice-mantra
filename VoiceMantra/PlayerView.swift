@@ -164,29 +164,16 @@ struct PlayerView: View {
                 
                 Spacer()
                 
-                // Playback controls
-                HStack(spacing: 40) {
-                    Button(action: previousAffirmation) {
-                        Image(systemName: "backward.fill")
-                            .font(.title2)
-                            .foregroundColor(currentIndex > 0 ? .primary : .secondary.opacity(0.5))
-                    }
-                    .disabled(currentIndex == 0 || isActive)
-                    
-                    Button(action: togglePlayback) {
-                        Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 72))
-                            .foregroundColor(currentAffirmation?.audioFileName != nil ? .blue : .secondary)
-                    }
-                    .disabled(affirmations.isEmpty)
-                    
-                    Button(action: nextAffirmation) {
-                        Image(systemName: "forward.fill")
-                            .font(.title2)
-                            .foregroundColor(currentIndex < affirmations.count - 1 ? .primary : .secondary.opacity(0.5))
-                    }
-                    .disabled(currentIndex >= affirmations.count - 1 || isActive)
+                // Play/Stop button - single-button experience
+                Button(action: togglePlayback) {
+                    Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 88))
+                        .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
+                        .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
                 }
+                .disabled(affirmations.isEmpty)
+                .scaleEffect(isActive ? 1.05 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: isActive)
                 .padding(.bottom, 60)
             }
             .padding()
@@ -385,19 +372,6 @@ struct PlayerView: View {
         print("⏹️ Playback stopped by user")
     }
     
-    private func previousAffirmation() {
-        stopPlayback()
-        if currentIndex > 0 {
-            currentIndex -= 1
-        }
-    }
-    
-    private func nextAffirmation() {
-        stopPlayback()
-        if currentIndex < affirmations.count - 1 {
-            currentIndex += 1
-        }
-    }
 }
 
 // MARK: - Safe Array Access
