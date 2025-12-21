@@ -163,33 +163,42 @@ struct PlayerView: View {
           .cornerRadius(20)
                 }
         
-        Spacer()
-        
-                // Play/Stop button - single-button experience
-                Button(action: togglePlayback) {
-                    Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 88))
-                        .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
-                        .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+                Spacer()
+                
+                // Playback Control Group
+                VStack(spacing: 30) {
+                    // Mixer Button - larger circular with blur background
+                    Button(action: { showingMixer = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 65, height: 65)
+                                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                            
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .shadow(color: Color.white.opacity(0.8), radius: 1, x: 0, y: 0)
+                        }
+                    }
+                    
+                    // Play/Stop button - single-button experience
+                    Button(action: togglePlayback) {
+                        Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 88))
+                            .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
+                            .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+                    }
+                    .disabled(affirmations.isEmpty)
+                    .scaleEffect(isActive ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isActive)
                 }
-                .disabled(affirmations.isEmpty)
-                .scaleEffect(isActive ? 1.05 : 1.0)
-                .animation(.easeInOut(duration: 0.2), value: isActive)
-        .padding(.bottom, 60)
+                .padding(.bottom, 60)
       }
       .padding()
     }
-    .navigationTitle("Now Playing")
-    .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingMixer = true }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.title3)
-                        .foregroundColor(.blue)
-                }
-            }
-        }
+        .navigationTitle("Now Playing")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingMixer) {
             MixerSheetView(audioService: audioService)
         }
