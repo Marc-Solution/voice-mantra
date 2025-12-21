@@ -84,91 +84,81 @@ struct PlayerView: View {
       )
       .ignoresSafeArea()
       
-      VStack(spacing: 32) {
-        Spacer()
-        
-                // Waveform icon with animation
+            VStack(spacing: 0) {
+                // MARK: - Fixed Top Section (Progress Indicator)
+                VStack {
+                    if !affirmations.isEmpty {
+                        HStack(spacing: 6) {
+                            Text("\(currentIndex + 1) of \(affirmations.count)")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            if isActive {
+                                Circle()
+                                    .fill(playbackState == .playing ? Color.green : Color.blue)
+                                    .frame(width: 5, height: 5)
+                            }
+                        }
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(Color(UIColor.tertiarySystemBackground).opacity(0.6))
+                        .cornerRadius(12)
+                    }
+                }
+                .frame(height: 60)  // Fixed height anchor
+                .padding(.top, 20)
+                
+                // MARK: - Center Section (Affirmation Text - The Heart)
+                Spacer()
+                
+                // Fixed-height container to prevent layout jumping
                 ZStack {
-                    // Soft glow during pause
-                    if playbackState == .pauseBetween {
-                        Circle()
-                            .fill(Color.blue.opacity(0.15))
-                            .frame(width: 140, height: 140)
-                            .blur(radius: 20)
-                    }
+                    // Invisible placeholder to maintain space
+                    Text(" ")
+                        .font(.system(size: 32, weight: .regular, design: .serif))
+                        .opacity(0)
+                        .frame(minHeight: 120)
                     
-                    Image(systemName: playbackState == .playing ? "waveform.circle.fill" : "waveform.circle")
-          .font(.system(size: 120))
-          .foregroundStyle(
-            LinearGradient(
-              gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
-              startPoint: .topLeading,
-              endPoint: .bottomTrailing
-            )
-          )
-          .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
-                        .opacity(playbackState == .pauseBetween ? 0.5 : 1.0)
-                        .animation(.easeInOut(duration: 0.3), value: playbackState)
-                }
-                
-                // Current affirmation text (fades out during pause)
-                VStack(spacing: 12) {
-                    if playbackState == .pauseBetween {
-                        // Empty during reflection pause
-                        Text("")
-                            .font(.title2)
-                            .frame(minHeight: 60)
-                    } else if let affirmation = currentAffirmation {
-                        Text(affirmation.text)
-                            .font(.title2)
-                            .fontWeight(.medium)
-            .foregroundColor(.primary)
-            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                            .transition(.opacity)
-                    } else if affirmations.isEmpty {
-                        Text("No recorded affirmations to play")
-                            .font(.title3)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .animation(.easeInOut(duration: 0.3), value: playbackState)
-                
-                // Progress indicator
-                if !affirmations.isEmpty {
-                    HStack(spacing: 8) {
-                        Text("\(currentIndex + 1) of \(affirmations.count)")
-          .font(.caption)
-          .foregroundColor(.secondary)
-                        
-                        if isActive {
-                            Circle()
-                                .fill(playbackState == .playing ? Color.green : Color.blue)
-                                .frame(width: 8, height: 8)
+                    // Actual affirmation text (or empty during pause)
+                    if playbackState != .pauseBetween {
+                        if let affirmation = currentAffirmation {
+                            Text(affirmation.text)
+                                .font(.system(size: 32, weight: .regular, design: .serif))
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(10)
+                                .padding(.horizontal, 28)
+                                .transition(.opacity)
+                        } else if affirmations.isEmpty {
+                            Text("No recorded affirmations")
+                                .font(.title2)
+                                .foregroundColor(.secondary)
                         }
                     }
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
-          .background(Color(UIColor.secondarySystemBackground))
-          .cornerRadius(20)
                 }
-        
-        Spacer()
-        
-                // Playback Control Group
-                VStack(spacing: 30) {
-                    // Mixer Button - larger circular with blur background
+                .frame(maxWidth: .infinity)
+                .animation(.easeInOut(duration: 0.4), value: playbackState)
+                .animation(.easeInOut(duration: 0.3), value: currentIndex)
+                
+                Spacer()
+                
+                // MARK: - Bottom Control Cluster
+                VStack(spacing: 28) {
+                    // Mixer Button - clean circular with material blur
                     Button(action: { showingMixer = true }) {
                         ZStack {
                             Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 65, height: 65)
-                                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                                .fill(.thinMaterial)
+                                .frame(width: 56, height: 56)
+                            
+                            Circle()
+                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                                .frame(width: 56, height: 56)
                             
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 26, weight: .semibold))
+                                .font(.system(size: 22, weight: .medium))
                                 .foregroundStyle(.primary)
-                                .shadow(color: Color.white.opacity(0.8), radius: 1, x: 0, y: 0)
                         }
                     }
                     
@@ -176,36 +166,36 @@ struct PlayerView: View {
                     ZStack {
                         // Background track (subtle ring)
                         Circle()
-                            .stroke(Color.white.opacity(0.05), lineWidth: 6)
-                            .frame(width: 110, height: 110)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 5)
+                            .frame(width: 108, height: 108)
                         
                         // Progress ring
                         Circle()
                             .trim(from: 0, to: audioService.macroProgress)
                             .stroke(
                                 Color.blue,
-                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round)
                             )
-                            .frame(width: 110, height: 110)
-                            .rotationEffect(.degrees(-90))  // Start from top
+                            .frame(width: 108, height: 108)
+                            .rotationEffect(.degrees(-90))
                             .animation(.linear(duration: 0.1), value: audioService.macroProgress)
                         
                         // Play/Stop button
                         Button(action: togglePlayback) {
                             Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 88))
+                                .font(.system(size: 84))
                                 .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
-                                .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+                                .shadow(color: Color.blue.opacity(isActive ? 0.3 : 0.15), radius: 10, x: 0, y: 4)
                         }
                         .disabled(affirmations.isEmpty)
                     }
-                    .scaleEffect(isActive ? 1.05 : 1.0)
+                    .scaleEffect(isActive ? 1.03 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isActive)
+                }
+                .padding(.bottom, 50)
+            }
+            .padding()
         }
-        .padding(.bottom, 60)
-      }
-      .padding()
-    }
         .navigationTitle("Now Playing: \(list.title)")
     .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingMixer) {
