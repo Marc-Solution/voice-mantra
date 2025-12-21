@@ -89,6 +89,14 @@ struct PlayerView: View {
         
                 // Waveform icon with animation
                 ZStack {
+                    // Soft glow during pause
+                    if playbackState == .pauseBetween {
+                        Circle()
+                            .fill(Color.blue.opacity(0.15))
+                            .frame(width: 140, height: 140)
+                            .blur(radius: 20)
+                    }
+                    
                     Image(systemName: playbackState == .playing ? "waveform.circle.fill" : "waveform.circle")
           .font(.system(size: 120))
           .foregroundStyle(
@@ -99,18 +107,8 @@ struct PlayerView: View {
             )
           )
           .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
+                        .opacity(playbackState == .pauseBetween ? 0.5 : 1.0)
                         .animation(.easeInOut(duration: 0.3), value: playbackState)
-                    
-                    // Countdown overlay during pause
-                    if playbackState == .pauseBetween {
-                        Circle()
-                            .fill(Color.black.opacity(0.5))
-                            .frame(width: 60, height: 60)
-                        
-                        Text("\(pauseCountdown)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
                 }
                 
                 // Current affirmation text (fades out during pause)
@@ -124,8 +122,8 @@ struct PlayerView: View {
                         Text(affirmation.text)
                             .font(.title2)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
+            .foregroundColor(.primary)
+            .multilineTextAlignment(.center)
                             .padding(.horizontal)
                             .transition(.opacity)
                     } else if affirmations.isEmpty {
@@ -155,8 +153,8 @@ struct PlayerView: View {
           .cornerRadius(20)
                 }
         
-                Spacer()
-                
+        Spacer()
+        
                 // Playback Control Group
                 VStack(spacing: 30) {
                     // Mixer Button - larger circular with blur background
@@ -174,23 +172,42 @@ struct PlayerView: View {
                         }
                     }
                     
-                    // Play/Stop button - single-button experience
-                    Button(action: togglePlayback) {
-                        Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 88))
-                            .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
-                            .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+                    // Play/Stop button with Macro-Progress Ring
+                    ZStack {
+                        // Background track (subtle ring)
+                        Circle()
+                            .stroke(Color.white.opacity(0.05), lineWidth: 6)
+                            .frame(width: 110, height: 110)
+                        
+                        // Progress ring
+                        Circle()
+                            .trim(from: 0, to: audioService.macroProgress)
+                            .stroke(
+                                Color.blue,
+                                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            )
+                            .frame(width: 110, height: 110)
+                            .rotationEffect(.degrees(-90))  // Start from top
+                            .animation(.linear(duration: 0.1), value: audioService.macroProgress)
+                        
+                        // Play/Stop button
+                        Button(action: togglePlayback) {
+                            Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 88))
+                                .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
+                                .shadow(color: Color.blue.opacity(isActive ? 0.4 : 0.2), radius: 12, x: 0, y: 6)
+                        }
+                        .disabled(affirmations.isEmpty)
                     }
-                    .disabled(affirmations.isEmpty)
                     .scaleEffect(isActive ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isActive)
-                }
-                .padding(.bottom, 60)
+        }
+        .padding(.bottom, 60)
       }
       .padding()
     }
         .navigationTitle("Now Playing: \(list.title)")
-        .navigationBarTitleDisplayMode(.inline)
+    .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingMixer) {
             MixerSheetView(audioService: audioService)
         }
@@ -263,6 +280,10 @@ struct PlayerView: View {
         // Start all 4 channels (voice will be played per-affirmation)
         audioService.playAllBackgroundTracks()
         
+        // Start macro-progress tracking with all audio URLs
+        let audioURLs = affirmations.compactMap { $0.audioFileURL }
+        audioService.startMacroProgressTracking(audioURLs: audioURLs)
+        
         // Infinite loop - plays until user stops
         while true {
             // Check for cancellation at start of each loop iteration
@@ -328,6 +349,7 @@ struct PlayerView: View {
             if isLoopingBack {
                 currentIndex = 0
                 isLoopingBack = false  // Reset for next iteration
+                audioService.resetMacroProgress()  // Reset progress ring for new loop
                 print("🔁 Looped back to first affirmation")
             } else {
                 currentIndex += 1
@@ -382,6 +404,9 @@ struct PlayerView: View {
         
         // Stop any playing audio
         audioService.stopListPlayback()
+        
+        // Stop macro progress tracking
+        audioService.stopMacroProgressTracking()
         
         // Reset state
         playbackState = .stopped

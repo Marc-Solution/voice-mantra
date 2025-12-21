@@ -37,6 +37,14 @@ final class AudioService: NSObject, ObservableObject {
     @Published var natureVolume: Float = 0.2     // Default: 20%
     @Published var binauralVolume: Float = 0.15  // Default: 15%
     
+    // MARK: - Published Properties (Macro-Loop Progress)
+    @Published var macroProgress: Double = 0.0   // 0.0 to 1.0 for entire loop
+    
+    // MARK: - Private Properties (Macro-Loop Tracking)
+    private var macroLoopStartTime: Date?
+    private var totalLoopDuration: TimeInterval = 0
+    private var macroProgressTimer: Timer?
+    
     // MARK: - Private Properties (Recording)
     private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?  // Voice/affirmation player
@@ -154,6 +162,109 @@ final class AudioService: NSObject, ObservableObject {
     func setBinauralVolume(_ volume: Float) {
         binauralVolume = volume
         binauralPlayer?.volume = volume
+    }
+    
+    // MARK: - Macro-Loop Progress Tracking
+    
+    /// Calculates total loop duration: sum of audio durations + (count * 10 seconds gap)
+    /// - Parameter audioURLs: Array of audio file URLs in the list
+    /// - Returns: Total duration in seconds
+    func calculateTotalLoopDuration(audioURLs: [URL]) -> TimeInterval {
+        var totalAudioDuration: TimeInterval = 0
+        
+        for url in audioURLs {
+            if let duration = getAudioDuration(url: url) {
+                totalAudioDuration += duration
+            }
+        }
+        
+        // Add 10-second gap for each audio file
+        let gapDuration = TimeInterval(audioURLs.count) * 10.0
+        let total = totalAudioDuration + gapDuration
+        
+        print("📊 Total Loop Duration: \(String(format: "%.1f", total))s (Audio: \(String(format: "%.1f", totalAudioDuration))s + Gaps: \(String(format: "%.1f", gapDuration))s)")
+        
+        return total
+    }
+    
+    /// Gets the duration of an audio file
+    private func getAudioDuration(url: URL) -> TimeInterval? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        
+        do {
+            let audioPlayer = try AVAudioPlayer(contentsOf: url)
+            return audioPlayer.duration
+        } catch {
+            print("⚠️ Could not get duration for: \(url.lastPathComponent)")
+            return nil
+        }
+    }
+    
+    /// Starts tracking macro-loop progress
+    /// - Parameter audioURLs: Array of audio file URLs in the list
+    func startMacroProgressTracking(audioURLs: [URL]) {
+        // Calculate total duration
+        totalLoopDuration = calculateTotalLoopDuration(audioURLs: audioURLs)
+        
+        guard totalLoopDuration > 0 else {
+            print("⚠️ Cannot track macro progress - no audio duration")
+            return
+        }
+        
+        // Reset and start
+        macroProgress = 0.0
+        macroLoopStartTime = Date()
+        
+        // Start timer to update progress
+        macroProgressTimer?.invalidate()
+        macroProgressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.updateMacroProgress()
+        }
+        
+        print("🔄 Macro progress tracking started")
+    }
+    
+    /// Updates macro progress based on elapsed time
+    private func updateMacroProgress() {
+        guard let startTime = macroLoopStartTime, totalLoopDuration > 0 else { return }
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        let newProgress = min(elapsed / totalLoopDuration, 1.0)
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.macroProgress = newProgress
+        }
+    }
+    
+    /// Resets macro progress (called when loop restarts)
+    func resetMacroProgress() {
+        macroProgressTimer?.invalidate()
+        macroProgressTimer = nil
+        macroLoopStartTime = Date()  // Reset start time for new loop
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.macroProgress = 0.0
+        }
+        
+        // Restart the timer
+        macroProgressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.updateMacroProgress()
+        }
+        
+        print("🔄 Macro progress reset for new loop")
+    }
+    
+    /// Stops macro progress tracking
+    func stopMacroProgressTracking() {
+        macroProgressTimer?.invalidate()
+        macroProgressTimer = nil
+        macroLoopStartTime = nil
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.macroProgress = 0.0
+        }
+        
+        print("⏹️ Macro progress tracking stopped")
     }
     
     // MARK: - Audio Session Configuration
