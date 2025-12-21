@@ -15,14 +15,14 @@ enum AudioSessionMode {
     case playback
 }
 
-/// Audio recording and playback service with 15-second recording limit
+/// Audio recording and playback service with 15-second recording limit and 4-channel mixer
 final class AudioService: NSObject, ObservableObject {
     static let shared = AudioService()
     
     // MARK: - Constants
     static let maxRecordingDuration: TimeInterval = 15.0
     
-    // MARK: - Published Properties
+    // MARK: - Published Properties (Recording)
     @Published var isRecording: Bool = false
     @Published var currentDuration: TimeInterval = 0
     @Published var progress: Double = 0.0  // 0.0 to 1.0
@@ -31,41 +31,162 @@ final class AudioService: NSObject, ObservableObject {
     @Published var recordingError: String? = nil
     @Published var playbackError: String? = nil
     
-    // MARK: - Private Properties
+    // MARK: - Published Properties (4-Channel Mixer Volumes)
+    @Published var voiceVolume: Float = 1.0      // Default: 100%
+    @Published var musicVolume: Float = 0.4      // Default: 40%
+    @Published var natureVolume: Float = 0.2     // Default: 20%
+    @Published var binauralVolume: Float = 0.15  // Default: 15%
+    
+    // MARK: - Private Properties (Recording)
     private var recorder: AVAudioRecorder?
-    private var player: AVAudioPlayer?
-    private var recordingSession: AVAudioSession { AVAudioSession.sharedInstance() }
+    private var player: AVAudioPlayer?  // Voice/affirmation player
+    private var audioSession: AVAudioSession { AVAudioSession.sharedInstance() }
     private var timer: Timer?
     private var currentTempURL: URL?
     private var onRecordingComplete: (() -> Void)?
     private var onPlaybackFinish: (() -> Void)?
     
+    // MARK: - Private Properties (4-Channel Mixer)
+    private var ambientPlayer: AVAudioPlayer?   // Background music
+    private var naturePlayer: AVAudioPlayer?    // Nature sounds
+    private var binauralPlayer: AVAudioPlayer?  // Binaural beats
+    
     private override init() {
         super.init()
         // Configure audio session on initialization
         ensureAudioSession(for: .playback)
+        // Setup background audio tracks
+        setupBackgroundTracks()
+    }
+    
+    // MARK: - 4-Channel Mixer Setup
+    
+    /// Loads and configures all background audio tracks
+    private func setupBackgroundTracks() {
+        // Load Ambient Music
+        if let url = Bundle.main.url(forResource: "AmbientMusic", withExtension: "mp3") {
+            do {
+                ambientPlayer = try AVAudioPlayer(contentsOf: url)
+                ambientPlayer?.numberOfLoops = -1  // Infinite loop
+                ambientPlayer?.volume = musicVolume
+                ambientPlayer?.prepareToPlay()
+                print("✅ Loaded AmbientMusic.mp3")
+            } catch {
+                print("⚠️ Failed to load AmbientMusic.mp3: \(error.localizedDescription)")
+            }
+        } else {
+            print("⚠️ AmbientMusic.mp3 not found in bundle")
+        }
+        
+        // Load Nature Sounds
+        if let url = Bundle.main.url(forResource: "NatureSounds", withExtension: "mp3") {
+            do {
+                naturePlayer = try AVAudioPlayer(contentsOf: url)
+                naturePlayer?.numberOfLoops = -1  // Infinite loop
+                naturePlayer?.volume = natureVolume
+                naturePlayer?.prepareToPlay()
+                print("✅ Loaded NatureSounds.mp3")
+            } catch {
+                print("⚠️ Failed to load NatureSounds.mp3: \(error.localizedDescription)")
+            }
+        } else {
+            print("⚠️ NatureSounds.mp3 not found in bundle")
+        }
+        
+        // Load Binaural Beats
+        if let url = Bundle.main.url(forResource: "Bineural5Hz", withExtension: "mp3") {
+            do {
+                binauralPlayer = try AVAudioPlayer(contentsOf: url)
+                binauralPlayer?.numberOfLoops = -1  // Infinite loop
+                binauralPlayer?.volume = binauralVolume
+                binauralPlayer?.prepareToPlay()
+                print("✅ Loaded Bineural5Hz.mp3")
+            } catch {
+                print("⚠️ Failed to load Bineural5Hz.mp3: \(error.localizedDescription)")
+            }
+        } else {
+            print("⚠️ Bineural5Hz.mp3 not found in bundle")
+        }
+    }
+    
+    // MARK: - 4-Channel Mixer Controls
+    
+    /// Starts all background tracks simultaneously
+    func playAllBackgroundTracks() {
+        print("🎵 Starting all background tracks...")
+        ambientPlayer?.play()
+        naturePlayer?.play()
+        binauralPlayer?.play()
+    }
+    
+    /// Stops all background tracks
+    func stopAllBackgroundTracks() {
+        print("⏹️ Stopping all background tracks...")
+        ambientPlayer?.stop()
+        naturePlayer?.stop()
+        binauralPlayer?.stop()
+        
+        // Reset playback position
+        ambientPlayer?.currentTime = 0
+        naturePlayer?.currentTime = 0
+        binauralPlayer?.currentTime = 0
+    }
+    
+    /// Updates the voice track volume
+    func setVoiceVolume(_ volume: Float) {
+        voiceVolume = volume
+        player?.volume = volume
+    }
+    
+    /// Updates the ambient music volume
+    func setMusicVolume(_ volume: Float) {
+        musicVolume = volume
+        ambientPlayer?.volume = volume
+    }
+    
+    /// Updates the nature sounds volume
+    func setNatureVolume(_ volume: Float) {
+        natureVolume = volume
+        naturePlayer?.volume = volume
+    }
+    
+    /// Updates the binaural beats volume
+    func setBinauralVolume(_ volume: Float) {
+        binauralVolume = volume
+        binauralPlayer?.volume = volume
     }
     
     // MARK: - Audio Session Configuration
     
     /// Ensures the audio session is properly configured for the given mode
-    /// Uses .playAndRecord for BOTH modes to ensure consistent behavior
     @discardableResult
     func ensureAudioSession(for mode: AudioSessionMode) -> Bool {
-        let session = recordingSession
+        let session = audioSession
         
         do {
-            // Use .playAndRecord for BOTH recording and playback
-            // This prevents category switching issues that cause OSStatus -50
-            try session.setCategory(
-                .playAndRecord,
-                mode: .default,
-                options: [
-                    .defaultToSpeaker,      // Route to loud speakers
-                    .allowBluetooth,        // Support Bluetooth HFP
-                    .allowBluetoothA2DP     // Support modern Bluetooth headphones (AAC/SBC)
-                ]
-            )
+            switch mode {
+            case .recording:
+                // Use .playAndRecord for recording mode
+                // Note: .allowBluetooth is deprecated in iOS 17+, use .allowBluetoothA2DP instead
+                try session.setCategory(
+                    .playAndRecord,
+                    mode: .default,
+                    options: [
+                        .defaultToSpeaker,
+                        .allowBluetoothA2DP
+                    ]
+                )
+            case .playback:
+                // Use .playback for playback mode (fixes OSStatus -50)
+                // DO NOT use .defaultToSpeaker with .playback category
+                try session.setCategory(
+                    .playback,
+                    mode: .default,
+                    options: [
+                        .mixWithOthers  // Allow mixing with other audio if needed
+                    ]
+                )
+            }
             
             // Activate the session
             do {
@@ -95,16 +216,18 @@ final class AudioService: NSObject, ObservableObject {
         ensureAudioSession(for: .playback)
     }
     
-    // MARK: - Permissions
+    // MARK: - Permissions (iOS 17+)
     
-    /// Check current microphone permission status
-    var microphonePermissionStatus: AVAudioSession.RecordPermission {
-        recordingSession.recordPermission
+    /// Check if microphone permission is granted
+    var isMicrophonePermissionGranted: Bool {
+        AVAudioApplication.shared.recordPermission == .granted
     }
     
-    /// Request microphone permission explicitly
+    /// Request microphone permission explicitly using iOS 17+ API
     func requestPermission(completion: @escaping (Bool) -> Void) {
-        switch recordingSession.recordPermission {
+        let currentPermission = AVAudioApplication.shared.recordPermission
+        
+        switch currentPermission {
         case .granted:
             DispatchQueue.main.async {
                 self.permissionDenied = false
@@ -140,7 +263,8 @@ final class AudioService: NSObject, ObservableObject {
         playbackError = nil
         onRecordingComplete = onComplete
         
-        guard recordingSession.recordPermission == .granted else {
+        // Use modern iOS 17+ permission check
+        guard isMicrophonePermissionGranted else {
             print("❌ Microphone permission not granted. Cannot start recording.")
             permissionDenied = true
             recordingError = "Microphone permission denied. Please enable in Settings."
@@ -249,39 +373,30 @@ final class AudioService: NSObject, ObservableObject {
         playbackError = nil
         onPlaybackFinish = onFinish
         
-        let session = recordingSession
-        
         do {
-            // Step 1: Ensure audio session is configured
+            // Step 1: Configure audio session for playback (NO .defaultToSpeaker!)
             print("📱 Configuring audio session for playback...")
-            ensureAudioSession(for: .playback)
-            
-            // Step 2: Force speaker output as fallback for "receiver" bug
-            do {
-                try session.overrideOutputAudioPort(.speaker)
-                print("🔊 Output port overridden to speaker")
-            } catch let overrideError as NSError {
-                print("⚠️ Could not override output port: \(overrideError.localizedDescription)")
-                // Continue anyway - this is just a fallback
-            }
+            let session = audioSession
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true)
             
             // Log current session state
             print("🔊 Audio Session Category set to: \(session.category.rawValue)")
             print("   Current route: \(session.currentRoute.outputs.map { $0.portName })")
             
-            // Step 3: Create the audio player
+            // Step 2: Create the audio player
             print("📂 Loading audio from: \(url.lastPathComponent)")
             player = try AVAudioPlayer(contentsOf: url)
             player?.delegate = self
-            player?.volume = 1.0
+            player?.volume = voiceVolume
             
-            // Step 4: Prepare to play
+            // Step 3: Prepare to play
             guard player?.prepareToPlay() == true else {
                 throw NSError(domain: "AudioService", code: 10, userInfo: [NSLocalizedDescriptionKey: "prepareToPlay() failed"])
             }
             print("✅ Player prepared successfully")
             
-            // Step 5: Start playback
+            // Step 4: Start playback
             print("▶️ Starting playback...")
             let playSuccess = player?.play() ?? false
             
@@ -344,10 +459,10 @@ final class AudioService: NSObject, ObservableObject {
         
         print("▶️ Starting playback for: \(url.lastPathComponent)")
         
-        // Step 2: Configure audio session fresh for this playback
+        // Step 2: Configure audio session for playback (NO .defaultToSpeaker with .playback!)
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+            try session.setCategory(.playback, mode: .default, options: [])
             try session.setActive(true)
             print("✅ Audio session configured for playback")
         } catch {
@@ -359,7 +474,7 @@ final class AudioService: NSObject, ObservableObject {
         do {
             player = try createPlayer(from: url)
             player?.delegate = self
-            player?.volume = 1.0
+            player?.volume = voiceVolume  // Apply current voice volume from mixer
             
             guard player?.prepareToPlay() == true else {
                 throw NSError(domain: "AudioService", code: 20, userInfo: [NSLocalizedDescriptionKey: "prepareToPlay() failed"])
@@ -375,7 +490,7 @@ final class AudioService: NSObject, ObservableObject {
                 player = nil
                 player = try createPlayer(from: url)
                 player?.delegate = self
-                player?.volume = 1.0
+                player?.volume = voiceVolume
                 _ = player?.prepareToPlay()
                 
                 if let retrySuccess = player?.play(), retrySuccess {
@@ -400,12 +515,16 @@ final class AudioService: NSObject, ObservableObject {
         return try AVAudioPlayer(contentsOf: url)
     }
     
-    /// Stops any current list playback
+    /// Stops any current list playback and all background tracks
     func stopListPlayback() {
         player?.stop()
         player = nil
         isPlaying = false
         onPlaybackFinish = nil
+        
+        // Also stop background tracks
+        stopAllBackgroundTracks()
+        
         print("⏹️ List playback stopped")
     }
     

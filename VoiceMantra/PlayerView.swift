@@ -12,7 +12,7 @@ import AVFoundation
 /// Wrapper type for programmatic navigation to PlayerView
 struct PlayerDestination: Hashable {
     let listId: PersistentIdentifier
-    let list: AffirmationList
+  let list: AffirmationList
     
     init(list: AffirmationList) {
         self.listId = list.persistentModelID
@@ -36,16 +36,17 @@ enum PlaybackState: Equatable {
 }
 
 struct PlayerView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    let list: AffirmationList
-    
+  @Environment(\.dismiss) private var dismiss
+  
+  let list: AffirmationList
+  
     // MARK: - State
     @State private var currentIndex: Int = 0
     @State private var playbackState: PlaybackState = .stopped
     @State private var pauseCountdown: Int = 10
     @State private var countdownTimer: Timer?
     @State private var isLoopingBack: Bool = false  // True when about to restart from beginning
+    @State private var showingMixer: Bool = false   // Mixer sheet visibility
     
     /// Task that manages the entire playback sequence
     @State private var playbackTask: Task<Void, Never>?
@@ -68,36 +69,36 @@ struct PlayerView: View {
     /// True if actively playing audio or in pause-between state
     private var isActive: Bool {
         playbackState != .stopped
-    }
-    
-    var body: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(UIColor.systemBackground),
-                    Color.blue.opacity(0.05)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 32) {
-                Spacer()
-                
+  }
+  
+  var body: some View {
+    ZStack {
+      // Background gradient
+      LinearGradient(
+        gradient: Gradient(colors: [
+          Color(UIColor.systemBackground),
+          Color.blue.opacity(0.05)
+        ]),
+        startPoint: .top,
+        endPoint: .bottom
+      )
+      .ignoresSafeArea()
+      
+      VStack(spacing: 32) {
+        Spacer()
+        
                 // Waveform icon with animation
                 ZStack {
                     Image(systemName: playbackState == .playing ? "waveform.circle.fill" : "waveform.circle")
-                        .font(.system(size: 120))
-                        .foregroundStyle(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
+          .font(.system(size: 120))
+          .foregroundStyle(
+            LinearGradient(
+              gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.6)]),
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
+          )
+          .shadow(color: Color.blue.opacity(0.3), radius: 20, x: 0, y: 10)
                         .animation(.easeInOut(duration: 0.3), value: playbackState)
                     
                     // Countdown overlay during pause
@@ -115,15 +116,15 @@ struct PlayerView: View {
                 // List name & current affirmation
                 VStack(spacing: 12) {
                     Text(list.title)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+          
                     if let affirmation = currentAffirmation {
                         Text(affirmation.text)
                             .font(.title2)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
+            .foregroundColor(.primary)
+            .multilineTextAlignment(.center)
                             .padding(.horizontal)
                             .animation(.easeInOut, value: currentIndex)
                     } else if affirmations.isEmpty {
@@ -147,8 +148,8 @@ struct PlayerView: View {
                 if !affirmations.isEmpty {
                     HStack(spacing: 8) {
                         Text("\(currentIndex + 1) of \(affirmations.count)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+          .font(.caption)
+          .foregroundColor(.secondary)
                         
                         if isActive {
                             Circle()
@@ -156,14 +157,14 @@ struct PlayerView: View {
                                 .frame(width: 8, height: 8)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(20)
+          .padding(.horizontal, 16)
+          .padding(.vertical, 8)
+          .background(Color(UIColor.secondarySystemBackground))
+          .cornerRadius(20)
                 }
-                
-                Spacer()
-                
+        
+        Spacer()
+        
                 // Play/Stop button - single-button experience
                 Button(action: togglePlayback) {
                     Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
@@ -174,12 +175,24 @@ struct PlayerView: View {
                 .disabled(affirmations.isEmpty)
                 .scaleEffect(isActive ? 1.05 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: isActive)
-                .padding(.bottom, 60)
+        .padding(.bottom, 60)
+      }
+      .padding()
+    }
+    .navigationTitle("Now Playing")
+    .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingMixer = true }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.title3)
+                        .foregroundColor(.blue)
+                }
             }
-            .padding()
         }
-        .navigationTitle("Now Playing")
-        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingMixer) {
+            MixerSheetView(audioService: audioService)
+        }
         .onAppear {
             autoStartPlayback()
         }
@@ -245,6 +258,9 @@ struct PlayerView: View {
             playbackState = .stopped
             return
         }
+        
+        // Start all 4 channels (voice will be played per-affirmation)
+        audioService.playAllBackgroundTracks()
         
         // Infinite loop - plays until user stops
         while true {
@@ -322,12 +338,12 @@ struct PlayerView: View {
     @MainActor
     private func playAudio(url: URL) async {
         await withCheckedContinuation { continuation in
-            // Configure audio session fresh
+            // Configure audio session (NO .defaultToSpeaker with .playback category!)
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+                try session.setCategory(.playback, mode: .default, options: [])
                 try session.setActive(true)
-                print("✅ Audio session configured")
+                print("✅ Audio session configured for voice playback")
             } catch {
                 print("⚠️ Audio session warning: \(error.localizedDescription)")
             }
@@ -372,6 +388,133 @@ struct PlayerView: View {
         print("⏹️ Playback stopped by user")
     }
     
+}
+
+// MARK: - Mixer Sheet View
+
+struct MixerSheetView: View {
+    @ObservedObject var audioService: AudioService
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 28) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 44))
+                        .foregroundColor(.blue)
+                    
+                    Text("Audio Mixer")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text("Adjust the volume levels for each audio channel")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 16)
+                
+                // Sliders with balanced spacing
+                VStack(spacing: 22) {
+                    MixerSlider(
+                        label: "Voice",
+                        icon: "waveform",
+                        color: .blue,
+                        value: Binding(
+                            get: { audioService.voiceVolume },
+                            set: { audioService.setVoiceVolume($0) }
+                        )
+                    )
+                    
+                    MixerSlider(
+                        label: "Music",
+                        icon: "music.note",
+                        color: .purple,
+                        value: Binding(
+                            get: { audioService.musicVolume },
+                            set: { audioService.setMusicVolume($0) }
+                        )
+                    )
+                    
+                    MixerSlider(
+                        label: "Nature",
+                        icon: "leaf.fill",
+                        color: .green,
+                        value: Binding(
+                            get: { audioService.natureVolume },
+                            set: { audioService.setNatureVolume($0) }
+                        )
+                    )
+                    
+                    MixerSlider(
+                        label: "Binaural",
+                        icon: "brain.head.profile",
+                        color: .orange,
+                        value: Binding(
+                            get: { audioService.binauralVolume },
+                            set: { audioService.setBinauralVolume($0) }
+                        )
+                    )
+                }
+                .padding(.horizontal, 24)
+                
+                Spacer()
+            }
+            .padding()
+            .padding(.bottom, 80)  // Aggressive clearance from home gesture area
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Mixer Slider Component
+
+struct MixerSlider: View {
+    let label: String
+    let icon: String
+    let color: Color
+    @Binding var value: Float
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Label row
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(color)
+                    .frame(width: 20)
+                
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+            }
+            
+            // Slider row with percentage vertically centered
+            HStack(spacing: 12) {
+                Slider(value: $value, in: 0...1, step: 0.05)
+                    .tint(color)
+                
+                Text("\(Int(value * 100))%")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+                    .monospacedDigit()
+            }
+        }
+    }
 }
 
 // MARK: - Safe Array Access
