@@ -113,36 +113,28 @@ struct PlayerView: View {
                     }
                 }
                 
-                // List name & current affirmation
+                // Current affirmation text (fades out during pause)
                 VStack(spacing: 12) {
-                    Text(list.title)
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-          
-                    if let affirmation = currentAffirmation {
+                    if playbackState == .pauseBetween {
+                        // Empty during reflection pause
+                        Text("")
+                            .font(.title2)
+                            .frame(minHeight: 60)
+                    } else if let affirmation = currentAffirmation {
                         Text(affirmation.text)
                             .font(.title2)
                             .fontWeight(.medium)
-            .foregroundColor(.primary)
-            .multilineTextAlignment(.center)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                            .animation(.easeInOut, value: currentIndex)
+                            .transition(.opacity)
                     } else if affirmations.isEmpty {
                         Text("No recorded affirmations to play")
                             .font(.title3)
                             .foregroundColor(.secondary)
                     }
-                    
-                    // Status text
-                    if playbackState == .pauseBetween {
-                        Text(isLoopingBack 
-                             ? "Restarting in \(pauseCountdown)s..." 
-                             : "Next affirmation in \(pauseCountdown)s...")
-                            .font(.caption)
-                            .foregroundColor(isLoopingBack ? .orange : .blue)
-                            .padding(.top, 4)
-                    }
                 }
+                .animation(.easeInOut(duration: 0.3), value: playbackState)
                 
                 // Progress indicator
                 if !affirmations.isEmpty {
@@ -197,7 +189,7 @@ struct PlayerView: View {
       }
       .padding()
     }
-        .navigationTitle("Now Playing")
+        .navigationTitle("Now Playing: \(list.title)")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingMixer) {
             MixerSheetView(audioService: audioService)
