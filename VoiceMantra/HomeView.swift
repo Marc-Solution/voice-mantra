@@ -19,74 +19,139 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            List {
-                // Lists section
-                Section(header: Text("Lists")) {
-                    if lists.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("No lists yet")
-                                .foregroundColor(.secondary)
-                            Text("Create a list to get started.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    } else {
-                        ForEach(lists) { list in
-                            HStack(spacing: 12) {
-                                // Play button - navigates to PlayerView
-                                Button(action: {
-                                    navigationPath.append(PlayerDestination(list: list))
-                                }) {
-                                    Image(systemName: "play.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                        .frame(width: 36, height: 36)
-                                        .background(Color.blue)
-                                        .clipShape(Circle())
-                                }
-                                .buttonStyle(BorderlessButtonStyle())
-                                
-                                // NavigationLink for list detail
-                                NavigationLink(value: list) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(list.title)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .onDelete(perform: deleteLists)
-                    }
-                }
+            ZStack {
+                // Brand background
+                Color.brandBackground.ignoresSafeArea()
                 
-                // Quick stats
-                Section(header: Text("Stats")) {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Lists")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(lists.count)")
-                                .font(.headline)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Lists section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Your Lists")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.brandTextSecondary)
+                                .padding(.horizontal, 20)
+                            
+                            if lists.isEmpty {
+                                // Empty state card
+                                VStack(spacing: 12) {
+                                    Image(systemName: "folder.badge.plus")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.brandAccent.opacity(0.6))
+                                    
+                                    Text("No lists yet")
+                                        .font(.headline)
+                                        .foregroundColor(.brandText)
+                                    
+                                    Text("Create a list to get started")
+                                        .font(.subheadline)
+                                        .foregroundColor(.brandTextSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Color.brandField)
+                                )
+                                .padding(.horizontal, 16)
+                            } else {
+                                // List cards
+                                VStack(spacing: 10) {
+                                    ForEach(lists) { list in
+                                        HStack(spacing: 14) {
+                                            // Play button
+                                            Button(action: {
+                                                navigationPath.append(PlayerDestination(list: list))
+                                            }) {
+                                                Image(systemName: "play.fill")
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundColor(.black)
+                                                    .frame(width: 38, height: 38)
+                                                    .background(Color.brandAccent)
+                                                    .clipShape(Circle())
+                                            }
+                                            .buttonStyle(BorderlessButtonStyle())
+                                            
+                                            // NavigationLink for list detail
+                                            NavigationLink(value: list) {
+                                                HStack {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(list.title)
+                                                            .font(.body.weight(.medium))
+                                                            .foregroundColor(.brandText)
+                                                        Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
+                                                            .font(.caption)
+                                                            .foregroundColor(.brandTextSecondary)
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption.weight(.semibold))
+                                                        .foregroundColor(.brandTextSecondary)
+                                                }
+                                            }
+                                        }
+                                        .padding(14)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.brandField)
+                                        )
+                                    }
+                                    .onDelete(perform: deleteLists)
+                                }
+                                .padding(.horizontal, 16)
+                            }
                         }
-                        Spacer()
-                        VStack(alignment: .leading) {
-                            Text("Affirmations")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(totalAffirmations)")
-                                .font(.headline)
+                        
+                        // Quick stats
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Stats")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.brandTextSecondary)
+                                .padding(.horizontal, 20)
+                            
+                            HStack(spacing: 12) {
+                                // Lists stat
+                                VStack(spacing: 6) {
+                                    Text("\(lists.count)")
+                                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                                        .foregroundColor(.brandAccent)
+                                    Text("Lists")
+                                        .font(.caption)
+                                        .foregroundColor(.brandTextSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Color.brandField)
+                                )
+                                
+                                // Affirmations stat
+                                VStack(spacing: 6) {
+                                    Text("\(totalAffirmations)")
+                                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                                        .foregroundColor(.brandAccent)
+                                    Text("Affirmations")
+                                        .font(.caption)
+                                        .foregroundColor(.brandTextSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Color.brandField)
+                                )
+                            }
+                            .padding(.horizontal, 16)
                         }
+                        
+                        Spacer(minLength: 40)
                     }
+                    .padding(.top, 16)
                 }
             }
-            .listStyle(InsetGroupedListStyle())
             .navigationTitle("VoiceMantra")
             .navigationDestination(for: AffirmationList.self) { list in
                 ListDetailView(list: list)
@@ -99,21 +164,16 @@ struct HomeView: View {
                     Button(action: { showCreateList = true }) {
                         HStack(spacing: 6) {
                             Image(systemName: "plus")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.subheadline.weight(.bold))
                             Text("Create List")
-                                .font(.subheadline.weight(.medium))
+                                .font(.subheadline.weight(.semibold))
                         }
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(Color(UIColor.systemBackground))
-                                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(Color(UIColor.separator).opacity(0.3), lineWidth: 0.5)
+                                .fill(Color.brandAccent)
                         )
                     }
                     .buttonStyle(PlainButtonStyle())

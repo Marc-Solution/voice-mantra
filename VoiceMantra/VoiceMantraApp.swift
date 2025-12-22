@@ -29,11 +29,15 @@ struct VoiceMantraApp: App {
         // Configure audio session for playback
         // This ensures audio plays even with silent switch on or screen locked
         configureAudioSession()
+        
+        // Configure global navigation bar appearance for brand styling
+        configureNavigationAppearance()
     }
     
     var body: some Scene {
         WindowGroup {
             HomeView()
+                .preferredColorScheme(.dark)  // Force dark mode globally
         }
         .modelContainer(sharedModelContainer)
     }
@@ -47,5 +51,25 @@ struct VoiceMantraApp: App {
         } catch {
             print("❌ Failed to configure audio session: \(error)")
         }
+    }
+    
+    private func configureNavigationAppearance() {
+        // Standard navigation bar appearance
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.brandBackground)
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Color.brandText)
+        ]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Color.brandText)
+        ]
+        
+        // Back button color
+        UINavigationBar.appearance().tintColor = UIColor(Color.brandAccent)
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 }

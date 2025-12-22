@@ -73,11 +73,11 @@ struct PlayerView: View {
   
   var body: some View {
     ZStack {
-      // Background gradient
+      // Brand background with subtle gradient
       LinearGradient(
         gradient: Gradient(colors: [
-          Color(UIColor.systemBackground),
-          Color.blue.opacity(0.05)
+          Color.brandBackground,
+          Color.brandBackground.opacity(0.95)
         ]),
         startPoint: .top,
         endPoint: .bottom
@@ -95,14 +95,14 @@ struct PlayerView: View {
                             
                             if isActive {
                                 Circle()
-                                    .fill(playbackState == .playing ? Color.green : Color.blue)
+                                    .fill(playbackState == .playing ? Color.brandAccent : Color.brandAccent.opacity(0.6))
                                     .frame(width: 5, height: 5)
                             }
                         }
-                        .foregroundColor(.secondary.opacity(0.6))
+                        .foregroundColor(.brandTextSecondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 5)
-                        .background(Color(UIColor.tertiarySystemBackground).opacity(0.6))
+                        .background(Color.brandField.opacity(0.8))
                         .cornerRadius(12)
                     }
                 }
@@ -125,7 +125,7 @@ struct PlayerView: View {
                         if let affirmation = currentAffirmation {
                             Text(affirmation.text)
                                 .font(.system(size: 32, weight: .regular, design: .serif))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.brandText)
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(10)
                                 .padding(.horizontal, 28)
@@ -133,7 +133,7 @@ struct PlayerView: View {
                         } else if affirmations.isEmpty {
                             Text("No recorded affirmations")
                                 .font(.title2)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.brandTextSecondary)
                         }
                     }
                 }
@@ -145,20 +145,20 @@ struct PlayerView: View {
                 
                 // MARK: - Bottom Control Cluster
                 VStack(spacing: 28) {
-                    // Mixer Button - clean circular with material blur
+                    // Mixer Button - brand styled
                     Button(action: { showingMixer = true }) {
                         ZStack {
                             Circle()
-                                .fill(.thinMaterial)
+                                .fill(Color.brandField)
                                 .frame(width: 56, height: 56)
                             
                             Circle()
-                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(Color.brandAccent.opacity(0.2), lineWidth: 1)
                                 .frame(width: 56, height: 56)
                             
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 22, weight: .medium))
-                                .foregroundStyle(.primary)
+                                .foregroundColor(.brandAccent)
                         }
                     }
                     
@@ -166,14 +166,14 @@ struct PlayerView: View {
                     ZStack {
                         // Background track (subtle ring)
                         Circle()
-                            .stroke(Color.primary.opacity(0.06), lineWidth: 5)
+                            .stroke(Color.brandField, lineWidth: 5)
                             .frame(width: 108, height: 108)
                         
                         // Progress ring
                         Circle()
                             .trim(from: 0, to: audioService.macroProgress)
                             .stroke(
-                                Color.blue,
+                                Color.brandAccent,
                                 style: StrokeStyle(lineWidth: 5, lineCap: .round)
                             )
                             .frame(width: 108, height: 108)
@@ -184,8 +184,8 @@ struct PlayerView: View {
                         Button(action: togglePlayback) {
                             Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 84))
-                                .foregroundColor(affirmations.isEmpty ? .secondary : .blue)
-                                .shadow(color: Color.blue.opacity(isActive ? 0.3 : 0.15), radius: 10, x: 0, y: 4)
+                                .foregroundColor(affirmations.isEmpty ? .brandTextSecondary : .brandAccent)
+                                .shadow(color: Color.brandAccent.opacity(isActive ? 0.3 : 0.15), radius: 10, x: 0, y: 4)
                         }
                         .disabled(affirmations.isEmpty)
                     }
@@ -414,72 +414,74 @@ struct MixerSheetView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 28) {
-                // Header
-                VStack(spacing: 8) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 44))
-                        .foregroundColor(.blue)
-                    
-                    Text("Audio Mixer")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text("Adjust the volume levels for each audio channel")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 16)
+            ZStack {
+                // Brand background
+                Color.brandBackground.ignoresSafeArea()
                 
-                // Sliders with balanced spacing
-                VStack(spacing: 22) {
-                    MixerSlider(
-                        label: "Voice",
-                        icon: "waveform",
-                        color: .blue,
-                        value: Binding(
-                            get: { audioService.voiceVolume },
-                            set: { audioService.setVoiceVolume($0) }
-                        )
-                    )
+                VStack(spacing: 28) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("Audio Mixer")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.brandText)
+                        
+                        Text("Adjust the volume levels for each audio channel")
+                            .font(.caption)
+                            .foregroundColor(.brandTextSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 40)
                     
-                    MixerSlider(
-                        label: "Music",
-                        icon: "music.note",
-                        color: .purple,
-                        value: Binding(
-                            get: { audioService.musicVolume },
-                            set: { audioService.setMusicVolume($0) }
+                    // Sliders with balanced spacing
+                    VStack(spacing: 22) {
+                        MixerSlider(
+                            label: "Voice",
+                            icon: "waveform",
+                            color: .brandAccent,
+                            value: Binding(
+                                get: { audioService.voiceVolume },
+                                set: { audioService.setVoiceVolume($0) }
+                            )
                         )
-                    )
+                        
+                        MixerSlider(
+                            label: "Music",
+                            icon: "music.note",
+                            color: .purple,
+                            value: Binding(
+                                get: { audioService.musicVolume },
+                                set: { audioService.setMusicVolume($0) }
+                            )
+                        )
+                        
+                        MixerSlider(
+                            label: "Nature",
+                            icon: "leaf.fill",
+                            color: .green,
+                            value: Binding(
+                                get: { audioService.natureVolume },
+                                set: { audioService.setNatureVolume($0) }
+                            )
+                        )
+                        
+                        MixerSlider(
+                            label: "Binaural",
+                            icon: "brain.head.profile",
+                            color: .orange,
+                            value: Binding(
+                                get: { audioService.binauralVolume },
+                                set: { audioService.setBinauralVolume($0) }
+                            )
+                        )
+                    }
+                    .padding(.horizontal, 24)
                     
-                    MixerSlider(
-                        label: "Nature",
-                        icon: "leaf.fill",
-                        color: .green,
-                        value: Binding(
-                            get: { audioService.natureVolume },
-                            set: { audioService.setNatureVolume($0) }
-                        )
-                    )
-                    
-                    MixerSlider(
-                        label: "Binaural",
-                        icon: "brain.head.profile",
-                        color: .orange,
-                        value: Binding(
-                            get: { audioService.binauralVolume },
-                            set: { audioService.setBinauralVolume($0) }
-                        )
-                    )
+                    Spacer()
                 }
-                .padding(.horizontal, 24)
-                
-                Spacer()
+                .padding()
+                .padding(.bottom, 80)  // Aggressive clearance from home gesture area
             }
-            .padding()
-            .padding(.bottom, 80)  // Aggressive clearance from home gesture area
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -487,6 +489,7 @@ struct MixerSheetView: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                    .foregroundColor(.brandAccent)
                 }
             }
         }
@@ -515,7 +518,7 @@ struct MixerSlider: View {
                 Text(label)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.brandText)
             }
             
             // Slider row with percentage vertically centered
@@ -525,7 +528,7 @@ struct MixerSlider: View {
                 
                 Text("\(Int(value * 100))%")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.brandTextSecondary)
                     .frame(width: 44, alignment: .trailing)
                     .monospacedDigit()
             }

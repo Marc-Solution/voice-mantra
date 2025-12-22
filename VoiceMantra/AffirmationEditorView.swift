@@ -31,8 +31,8 @@ struct AffirmationEditorView: View {
   var body: some View {
     NavigationView {
             ZStack {
-                // Background - tappable to dismiss keyboard
-                Color(UIColor.systemGroupedBackground)
+                // Brand background - tappable to dismiss keyboard
+                Color.brandBackground
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -45,20 +45,17 @@ struct AffirmationEditorView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Your Affirmation")
                                 .font(.subheadline.weight(.medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.brandTextSecondary)
                             
                             TextField("I am confident, capable, and strong...", text: $vm.text, axis: .vertical)
                                 .textFieldStyle(.plain)
                                 .font(.body)
+                                .foregroundColor(.brandText)
                                 .lineLimit(4...8)
                                 .padding(16)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(UIColor.secondarySystemBackground))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color(UIColor.separator).opacity(0.5), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.brandField)
                                 )
                                 .focused($isTextFieldFocused)
                         }
@@ -77,14 +74,14 @@ struct AffirmationEditorView: View {
                                     ZStack(alignment: .leading) {
                                         // Background track
                                         RoundedRectangle(cornerRadius: 4)
-                                            .fill(Color(UIColor.systemGray5))
+                                            .fill(Color.brandField)
                                             .frame(height: 8)
                                         
                                         // Progress fill
                                         RoundedRectangle(cornerRadius: 4)
                                             .fill(
                                                 LinearGradient(
-                                                    colors: [Color.blue, Color.blue.opacity(0.7)],
+                                                    colors: [Color.brandAccent, Color.brandAccent.opacity(0.7)],
                                                     startPoint: .leading,
                                                     endPoint: .trailing
                                                 )
@@ -99,7 +96,7 @@ struct AffirmationEditorView: View {
                                 // Timer Display
                                 Text(vm.countdownText)
                                     .font(.system(size: 48, weight: .light, design: .monospaced))
-                                    .foregroundColor(vm.isRecording ? .red : .primary)
+                                    .foregroundColor(vm.isRecording ? .red : .brandText)
                                     .contentTransition(.numericText())
                                     .animation(.easeInOut(duration: 0.1), value: vm.countdownText)
                             }
@@ -117,17 +114,17 @@ struct AffirmationEditorView: View {
                                 }) {
                                     ZStack {
                                         Circle()
-                                            .fill(vm.isRecording ? Color.red : Color.blue)
+                                            .fill(vm.isRecording ? Color.red : Color.brandAccent)
                                             .frame(width: 80, height: 80)
-                                            .shadow(color: (vm.isRecording ? Color.red : Color.blue).opacity(0.4), radius: 8, x: 0, y: 4)
+                                            .shadow(color: (vm.isRecording ? Color.red : Color.brandAccent).opacity(0.4), radius: 8, x: 0, y: 4)
                                         
                                         if vm.isRecording {
                                             RoundedRectangle(cornerRadius: 6)
-                                                .fill(Color.white)
+                                                .fill(Color.black)
                                                 .frame(width: 28, height: 28)
                                         } else {
                                             Circle()
-                                                .fill(Color.white)
+                                                .fill(Color.black)
                                                 .frame(width: 28, height: 28)
                                         }
                                     }
@@ -142,13 +139,12 @@ struct AffirmationEditorView: View {
                                 }) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color(UIColor.secondarySystemBackground))
+                                            .fill(Color.brandField)
                                             .frame(width: 56, height: 56)
-                                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                                         
                                         Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
                   .font(.system(size: 22))
-                                            .foregroundColor(vm.hasRecording ? .blue : .gray)
+                                            .foregroundColor(vm.hasRecording ? .brandAccent : .brandTextSecondary)
                                     }
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -159,14 +155,13 @@ struct AffirmationEditorView: View {
                             // Recording Status Text
                             Text(statusText)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.brandTextSecondary)
                                 .frame(height: 20)
                         }
                         .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(UIColor.systemBackground))
-                                .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+                                .fill(Color.brandField)
                         )
                         .padding(.horizontal)
                         
@@ -182,13 +177,13 @@ struct AffirmationEditorView: View {
                                         Text("Save Affirmation")
                                     }
                                 }
-                                .font(.headline)
-                                .foregroundColor(.white)
+                                .font(.headline.weight(.semibold))
+                                .foregroundColor(.black)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(vm.canSave ? Color.blue : Color.gray)
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(vm.canSave ? Color.brandAccent : Color.brandAccent.opacity(0.4))
                                 )
                             }
                             .disabled(!vm.canSave || vm.isRecording)
@@ -196,7 +191,7 @@ struct AffirmationEditorView: View {
                             if vm.willSaveAsDraft && vm.canSave {
                                 Text("No audio recorded. This will be saved as a draft.")
                 .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.brandTextSecondary)
                                     .multilineTextAlignment(.center)
                             }
                         }
@@ -215,6 +210,7 @@ struct AffirmationEditorView: View {
                         vm.onDismiss()
                         dismiss()
                     }
+                    .foregroundColor(.brandAccent)
                 }
                 
                 // Done button above keyboard
@@ -223,6 +219,7 @@ struct AffirmationEditorView: View {
                     Button("Done") {
                         isTextFieldFocused = false
                     }
+                    .foregroundColor(.brandAccent)
                 }
             }
             .interactiveDismissDisabled(vm.isRecording)
@@ -338,7 +335,7 @@ struct WaveformBar: View {
     
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
-            .fill(isActive ? Color.blue : Color(UIColor.systemGray4))
+            .fill(isActive ? Color.brandAccent : Color.brandField)
             .frame(width: 4, height: barHeight)
             .animation(.easeInOut(duration: 0.15), value: isActive)
     }

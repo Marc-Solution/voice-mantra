@@ -15,87 +15,91 @@ struct ListDetailView: View {
     
     var body: some View {
         ZStack {
-            // Background
-            Color(UIColor.systemGroupedBackground)
-                .ignoresSafeArea()
+            // Brand background
+            Color.brandBackground.ignoresSafeArea()
             
             if list.affirmations.isEmpty {
                 // Empty state placeholder
                 VStack(spacing: 16) {
                     Image(systemName: "waveform.circle")
                         .font(.system(size: 60))
-                        .foregroundColor(.secondary.opacity(0.5))
+                        .foregroundColor(.brandAccent.opacity(0.5))
                     
                     Text("No affirmations yet")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.brandText)
                     
                     Text("Tap '+' to record your first one")
                         .font(.subheadline)
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(.brandTextSecondary)
                 }
                 .padding()
             } else {
                 // Affirmations list
-                List {
-                    ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
-                        Button(action: {
-                            affirmationToEdit = affirmation
-                        }) {
-                            HStack(spacing: 12) {
-                                // Status Icon - Blue mic for complete, gray for draft
-                                ZStack {
-                                    Circle()
-                                        .fill(affirmation.isDraft ? Color(UIColor.systemGray5) : Color.blue.opacity(0.15))
-                                        .frame(width: 40, height: 40)
-                                    
-                                    Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(affirmation.isDraft ? .gray : .blue)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Display first 20 characters of text property
-                                    Text(affirmation.displayName)
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    HStack(spacing: 8) {
-                                        // Status badge
-                                        HStack(spacing: 4) {
-                                            Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
-                                                .font(.caption2)
-                                            Text(affirmation.isDraft ? "Draft" : "Complete")
-                                                .font(.caption2)
-                                        }
-                                        .foregroundColor(affirmation.isDraft ? .secondary : .green)
+                ScrollView {
+                    VStack(spacing: 10) {
+                        ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
+                            Button(action: {
+                                affirmationToEdit = affirmation
+                            }) {
+                                HStack(spacing: 14) {
+                                    // Status Icon - Accent for complete, dimmed for draft
+                                    ZStack {
+                                        Circle()
+                                            .fill(affirmation.isDraft ? Color.brandField : Color.brandAccent.opacity(0.2))
+                                            .frame(width: 42, height: 42)
                                         
-                                        Text("•")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                        
-                                        Text(affirmation.createdAt, style: .date)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
+                                        Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
                                     }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        // Display first 20 characters of text property
+                                        Text(affirmation.displayName)
+                                            .font(.body.weight(.medium))
+                                            .foregroundColor(.brandText)
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        HStack(spacing: 8) {
+                                            // Status badge
+                                            HStack(spacing: 4) {
+                                                Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
+                                                    .font(.caption2)
+                                                Text(affirmation.isDraft ? "Draft" : "Complete")
+                                                    .font(.caption2)
+                                            }
+                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
+                                            
+                                            Text("•")
+                                                .font(.caption2)
+                                                .foregroundColor(.brandTextSecondary)
+                                            
+                                            Text(affirmation.createdAt, style: .date)
+                                                .font(.caption2)
+                                                .foregroundColor(.brandTextSecondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(.brandTextSecondary)
                                 }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.brandField)
+                                )
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
                     }
-                    .onDelete(perform: deleteAffirmations)
-                }
-                .listStyle(InsetGroupedListStyle())
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 100)  // Space for FAB
                 }
             }
             
@@ -108,18 +112,12 @@ struct ListDetailView: View {
                         showCreateAffirmation = true
                     }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.black)
                             .frame(width: 60, height: 60)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .background(Color.brandAccent)
                             .clipShape(Circle())
-                            .shadow(color: Color.blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.brandAccent.opacity(0.4), radius: 8, x: 0, y: 4)
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 20)
@@ -144,7 +142,8 @@ struct ListDetailView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 17))
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.brandAccent)
                 }
             }
         }
