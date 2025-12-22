@@ -38,6 +38,7 @@ struct VoiceMantraApp: App {
         WindowGroup {
             HomeView()
                 .preferredColorScheme(.dark)  // Force dark mode globally
+                .tint(.brandText)  // Global tint: white for all system controls
         }
         .modelContainer(sharedModelContainer)
     }
@@ -56,8 +57,9 @@ struct VoiceMantraApp: App {
     private func configureNavigationAppearance() {
         // Standard navigation bar appearance
         let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
+        appearance.configureWithTransparentBackground()  // Transparent, no separator
         appearance.backgroundColor = UIColor(Color.brandBackground)
+        appearance.shadowColor = .clear  // Remove the thin grey separator line
         appearance.titleTextAttributes = [
             .foregroundColor: UIColor(Color.brandText)
         ]
@@ -65,8 +67,8 @@ struct VoiceMantraApp: App {
             .foregroundColor: UIColor(Color.brandText)
         ]
         
-        // Back button color
-        UINavigationBar.appearance().tintColor = UIColor(Color.brandAccent)
+        // Back button and interactive elements: white (brandText)
+        UINavigationBar.appearance().tintColor = UIColor(Color.brandText)
         
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance

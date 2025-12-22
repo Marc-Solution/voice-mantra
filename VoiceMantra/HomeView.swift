@@ -153,6 +153,8 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("VoiceMantra")
+            .toolbarBackground(Color.brandBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(for: AffirmationList.self) { list in
                 ListDetailView(list: list)
             }

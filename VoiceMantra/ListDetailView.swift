@@ -125,6 +125,8 @@ struct ListDetailView: View {
             }
         }
         .navigationTitle(list.title)
+        .toolbarBackground(Color.brandBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {

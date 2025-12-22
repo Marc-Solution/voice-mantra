@@ -141,7 +141,7 @@ struct PlayerView: View {
                 .animation(.easeInOut(duration: 0.4), value: playbackState)
                 .animation(.easeInOut(duration: 0.3), value: currentIndex)
                 
-                Spacer()
+        Spacer()
                 
                 // MARK: - Bottom Control Cluster
                 VStack(spacing: 28) {
@@ -197,7 +197,9 @@ struct PlayerView: View {
             .padding()
         }
         .navigationTitle("Now Playing: \(list.title)")
-    .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.brandBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showingMixer) {
             MixerSheetView(audioService: audioService)
         }
@@ -413,7 +415,7 @@ struct MixerSheetView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationStack {
+    NavigationStack {
             ZStack {
                 // Brand background
                 Color.brandBackground.ignoresSafeArea()
