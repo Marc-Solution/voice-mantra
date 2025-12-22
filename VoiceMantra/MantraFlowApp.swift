@@ -1,6 +1,6 @@
 //
-//  VoiceMantraApp.swift
-//  VoiceMantra
+//  MantraFlowApp.swift
+//  MantraFlow
 //
 //  Created by Marco Deb on 2025-12-11.
 //
@@ -10,7 +10,7 @@ import SwiftData
 import AVFoundation
 
 @main
-struct VoiceMantraApp: App {
+struct MantraFlowApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             AffirmationList.self,

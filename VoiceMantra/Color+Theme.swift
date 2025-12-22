@@ -1,6 +1,6 @@
 //
 //  Color+Theme.swift
-//  VoiceMantra
+//  MantraFlow
 //
 //  Brand theme colors and styling helpers
 //

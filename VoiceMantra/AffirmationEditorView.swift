@@ -117,7 +117,7 @@ struct AffirmationEditorView: View {
                                             .fill(vm.isRecording ? Color.red : Color.brandAccent)
                                             .frame(width: 80, height: 80)
                                             .shadow(color: (vm.isRecording ? Color.red : Color.brandAccent).opacity(0.4), radius: 8, x: 0, y: 4)
-                                        
+                                                            
                                         if vm.isRecording {
                                             RoundedRectangle(cornerRadius: 6)
                                                 .fill(Color.black)

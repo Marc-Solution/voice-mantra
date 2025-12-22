@@ -1,6 +1,6 @@
 //
 //  AudioService.swift
-//  VoiceMantra
+//  MantraFlow
 //
 //  Created by Marco Deb on 2025-12-11.
 //
@@ -17,8 +17,8 @@ enum AudioSessionMode {
 
 /// Audio recording and playback service with 15-second recording limit and 4-channel mixer
 final class AudioService: NSObject, ObservableObject {
-    static let shared = AudioService()
-    
+  static let shared = AudioService()
+
     // MARK: - Constants
     static let maxRecordingDuration: TimeInterval = 15.0
     
@@ -46,10 +46,10 @@ final class AudioService: NSObject, ObservableObject {
     private var macroProgressTimer: Timer?
     
     // MARK: - Private Properties (Recording)
-    private var recorder: AVAudioRecorder?
+  private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?  // Voice/affirmation player
     private var audioSession: AVAudioSession { AVAudioSession.sharedInstance() }
-    private var timer: Timer?
+  private var timer: Timer?
     private var currentTempURL: URL?
     private var onRecordingComplete: (() -> Void)?
     private var onPlaybackFinish: (() -> Void)?
@@ -58,9 +58,9 @@ final class AudioService: NSObject, ObservableObject {
     private var ambientPlayer: AVAudioPlayer?   // Background music
     private var naturePlayer: AVAudioPlayer?    // Nature sounds
     private var binauralPlayer: AVAudioPlayer?  // Binaural beats
-    
-    private override init() {
-        super.init()
+
+  private override init() {
+    super.init()
         // Configure audio session on initialization
         ensureAudioSession(for: .playback)
         // Setup background audio tracks
@@ -385,20 +385,20 @@ final class AudioService: NSObject, ObservableObject {
         // Configure audio session for recording
         guard ensureAudioSession(for: .recording) else {
             recordingError = "Failed to configure audio session"
-            return
-        }
-        
-        do {
+        return
+      }
+
+      do {
             let fileURL = Self.createTempFile()
             currentTempURL = fileURL
-            
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+
+        let settings: [String: Any] = [
+          AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
                 AVSampleRateKey: 44100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]
-            
+          AVNumberOfChannelsKey: 1,
+          AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+
             recorder = try AVAudioRecorder(url: fileURL, settings: settings)
             recorder?.delegate = self
             recorder?.isMeteringEnabled = true
@@ -416,7 +416,7 @@ final class AudioService: NSObject, ObservableObject {
             progress = 0
             startTimer()
             
-            print("🎙️ Recording started at: \(fileURL.lastPathComponent)")
+        print("🎙️ Recording started at: \(fileURL.lastPathComponent)")
             
         } catch let error as NSError {
             handleRecordingError(error)
@@ -449,20 +449,20 @@ final class AudioService: NSObject, ObservableObject {
     func stopRecording() -> URL? {
         guard isRecording else { return currentTempURL }
         
-        recorder?.stop()
-        stopTimer()
+    recorder?.stop()
+    stopTimer()
         isRecording = false
         
         let url = currentTempURL
-        recorder = nil
+    recorder = nil
         
         // Keep session in .playAndRecord for seamless playback
         ensureAudioSession(for: .playback)
         
         print("🛑 Recording stopped. Duration: \(String(format: "%.1f", currentDuration))s")
-        return url
-    }
-    
+    return url
+  }
+
     var tempRecordingURL: URL? {
         currentTempURL
     }
@@ -663,19 +663,19 @@ final class AudioService: NSObject, ObservableObject {
     }
     
     // MARK: - Private Helpers
-    
-    private static func createTempFile() -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
+
+  private static func createTempFile() -> URL {
+    let tempDir = FileManager.default.temporaryDirectory
         let filename = "recording-\(UUID().uuidString).m4a"
-        return tempDir.appendingPathComponent(filename)
-    }
-    
-    private func startTimer() {
-        stopTimer()
+    return tempDir.appendingPathComponent(filename)
+  }
+
+  private func startTimer() {
+    stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+      guard let self = self else { return }
             
-            self.currentDuration = self.recorder?.currentTime ?? 0
+      self.currentDuration = self.recorder?.currentTime ?? 0
             self.progress = min(self.currentDuration / Self.maxRecordingDuration, 1.0)
             
             if self.currentDuration >= Self.maxRecordingDuration {
@@ -683,21 +683,21 @@ final class AudioService: NSObject, ObservableObject {
                 self.onRecordingComplete?()
                 self.onRecordingComplete = nil
             }
-        }
     }
-    
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
+  }
+
+  private func stopTimer() {
+    timer?.invalidate()
+    timer = nil
     }
-}
+  }
 
 // MARK: - AVAudioRecorderDelegate
 extension AudioService: AVAudioRecorderDelegate {
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+  func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         DispatchQueue.main.async { [weak self] in
-            if let error = error {
-                print("⚠️ Recorder encode error:", error.localizedDescription)
+    if let error = error {
+      print("⚠️ Recorder encode error:", error.localizedDescription)
                 self?.recordingError = "Recording error: \(error.localizedDescription)"
             }
             self?.isRecording = false

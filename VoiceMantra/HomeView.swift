@@ -1,6 +1,6 @@
 //
 //  HomeView.swift
-//  VoiceMantra
+//  MantraFlow
 //
 //  Created by Marco Deb on 2025-12-11.
 //
@@ -152,7 +152,7 @@ struct HomeView: View {
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle("VoiceMantra")
+            .navigationTitle("MantraFlow")
             .toolbarBackground(Color.brandBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(for: AffirmationList.self) { list in

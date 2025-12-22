@@ -1,8 +1,8 @@
 //
 //  PlayerView.swift
-//  VoiceMantra
+//  MantraFlow
 //
-//  Created for VoiceMantra
+//  Created for MantraFlow
 //
 
 import SwiftUI

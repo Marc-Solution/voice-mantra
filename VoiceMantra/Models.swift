@@ -1,6 +1,6 @@
 //
 //  Models.swift
-//  VoiceMantra
+//  MantraFlow
 //
 //  SwiftData models for persistent storage
 //
