@@ -26,14 +26,29 @@ struct HomeView: View {
                 // Brand background
                 Color.brandBackground.ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Lists section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Your Lists")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.brandTextSecondary)
-                                .padding(.horizontal, 20)
+                VStack(spacing: 0) {
+                    // MARK: - Pinned Stats Row (Top)
+                    statsRow
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 16)
+                        .background(
+                            Color.brandBackground
+                                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                        )
+                    
+                    // MARK: - Scrollable Lists Section
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Section header
+                            HStack {
+                                Text("Your Lists")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(.brandTextSecondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
                             
                             if lists.isEmpty {
                                 // Empty state card
@@ -58,113 +73,18 @@ struct HomeView: View {
                                 )
                                 .padding(.horizontal, 16)
                             } else {
-                                // List cards with swipe-to-delete
-                                List {
+                                // List cards
+                                VStack(spacing: 10) {
                                     ForEach(lists) { list in
-                                        HStack(spacing: 14) {
-                                            // Play button
-                                            Button(action: {
-                                                navigationPath.append(PlayerDestination(list: list))
-                                            }) {
-                                                Image(systemName: "play.fill")
-                                                    .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundColor(.black)
-                                                    .frame(width: 38, height: 38)
-                                                    .background(Color.brandAccent)
-                                                    .clipShape(Circle())
-                                            }
-                                            .buttonStyle(BorderlessButtonStyle())
-                                            
-                                            // NavigationLink for list detail
-                                            // Note: NavigationLink in List auto-adds chevron, don't add manually
-                                            NavigationLink(value: list) {
-                                                VStack(alignment: .leading, spacing: 4) {
-                                                    Text(list.title)
-                                                        .font(.body.weight(.medium))
-                                                        .foregroundColor(.brandText)
-                                                    Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
-                                                        .font(.caption)
-                                                        .foregroundColor(.brandTextSecondary)
-                                                }
-                                            }
-                                        }
-                                        .padding(.vertical, 6)
-                                        .listRowBackground(Color.brandField)
-                                        .listRowSeparator(.hidden)
-                                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                                        listRow(for: list)
                                     }
-                                    // Note: Swipe-to-delete disabled for lists to prevent accidents.
-                                    // Lists can only be deleted via the "..." menu inside ListDetailView.
                                 }
-                                .listStyle(.plain)
-                                .scrollContentBackground(.hidden)
-                                .background(Color.brandBackground)
-                                .frame(minHeight: CGFloat(lists.count) * 80)  // Dynamic height
+                                .padding(.horizontal, 16)
                             }
-                        }
-                        
-                        // Stats: Streak & Total Time
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Your Progress")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.brandTextSecondary)
-                                .padding(.horizontal, 20)
                             
-                            HStack(spacing: 12) {
-                                // Streak card
-                                VStack(spacing: 8) {
-                                    // Flame icon
-                                    Image(systemName: "flame.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(streakManager.currentStreak > 0 ? .brandAccent : .brandTextSecondary)
-                                    
-                                    // Streak count
-                                    Text("\(streakManager.currentStreak)")
-                                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                                        .foregroundColor(streakManager.currentStreak > 0 ? .brandAccent : .brandTextSecondary)
-                                    
-                                    Text("Day Streak")
-                                        .font(.caption)
-                                        .foregroundColor(.brandTextSecondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(Color.brandField)
-                                )
-                                
-                                // Total Time card
-                                VStack(spacing: 8) {
-                                    // Clock icon
-                                    Image(systemName: "clock.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.brandAccent)
-                                    
-                                    // Time display
-                                    Text(streakManager.formattedTotalTime)
-                                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                                        .foregroundColor(.brandAccent)
-                                        .minimumScaleFactor(0.7)
-                                        .lineLimit(1)
-                                    
-                                    Text("Total Time")
-                                        .font(.caption)
-                                        .foregroundColor(.brandTextSecondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(Color.brandField)
-                                )
-                            }
-                            .padding(.horizontal, 16)
+                            Spacer(minLength: 40)
                         }
-                        
-                        Spacer(minLength: 40)
                     }
-                    .padding(.top, 16)
                 }
             }
             .navigationTitle("MantraFlow")
@@ -209,6 +129,128 @@ struct HomeView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Stats Row (Compact Pills)
+    
+    private var statsRow: some View {
+        HStack(spacing: 12) {
+            // Streak Pill
+            HStack(spacing: 8) {
+                // Flame with glow effect when active
+                ZStack {
+                    if streakManager.currentStreak > 0 {
+                        // Glow effect
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.brandAccent)
+                            .blur(radius: 6)
+                            .opacity(0.7)
+                    }
+                    
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(streakManager.currentStreak > 0 ? .brandAccent : .brandTextSecondary)
+                }
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(streakManager.currentStreak) Days")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(streakManager.currentStreak > 0 ? .brandText : .brandTextSecondary)
+                    
+                    Text("Streak")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.brandTextSecondary)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(Color.brandField)
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(
+                                streakManager.currentStreak > 0 
+                                    ? Color.brandAccent.opacity(0.3) 
+                                    : Color.clear,
+                                lineWidth: 1
+                            )
+                    )
+            )
+            
+            // Total Time Pill
+            HStack(spacing: 8) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.brandAccent)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(streakManager.formattedTotalTime)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.brandText)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
+                    
+                    Text("Total")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.brandTextSecondary)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(Color.brandField)
+            )
+            
+            Spacer()
+        }
+    }
+    
+    // MARK: - List Row
+    
+    private func listRow(for list: AffirmationList) -> some View {
+        HStack(spacing: 14) {
+            // Play button
+            Button(action: {
+                navigationPath.append(PlayerDestination(list: list))
+            }) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: 38, height: 38)
+                    .background(Color.brandAccent)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(BorderlessButtonStyle())
+            
+            // NavigationLink for list detail
+            NavigationLink(value: list) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(list.title)
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.brandText)
+                        Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.brandTextSecondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.brandTextSecondary)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.brandField)
+        )
     }
     
     // Note: List deletion is handled via the "..." menu in ListDetailView,
