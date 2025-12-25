@@ -18,89 +18,121 @@ struct ListDetailView: View {
             // Brand background
             Color.brandBackground.ignoresSafeArea()
             
-            if list.affirmations.isEmpty {
-                // Empty state placeholder
-                VStack(spacing: 16) {
-                    Image(systemName: "waveform.circle")
-                        .font(.system(size: 60))
-                        .foregroundColor(.brandAccent.opacity(0.5))
-                    
-                    Text("No affirmations yet")
-                        .font(.headline)
+            VStack(spacing: 0) {
+                // MARK: - Header with Title and Play Button
+                HStack(spacing: 16) {
+                    // List Title
+                    Text(list.title)
+                        .font(.title2.weight(.bold))
                         .foregroundColor(.brandText)
                     
-                    Text("Tap '+' to record your first one")
-                        .font(.subheadline)
-                        .foregroundColor(.brandTextSecondary)
-                }
-                .padding()
-            } else {
-                // Affirmations list with swipe-to-delete
-                List {
-                    ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
-                        Button(action: {
-                            affirmationToEdit = affirmation
-                        }) {
-                            HStack(spacing: 14) {
-                                // Status Icon - Accent for complete, dimmed for draft
-                                ZStack {
-                                    Circle()
-                                        .fill(affirmation.isDraft ? Color.brandField : Color.brandAccent.opacity(0.2))
-                                        .frame(width: 42, height: 42)
-                                    
-                                    Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Display first 20 characters of text property
-                                    Text(affirmation.displayName)
-                                        .font(.body.weight(.medium))
-                                        .foregroundColor(.brandText)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    HStack(spacing: 8) {
-                                        // Status badge
-                                        HStack(spacing: 4) {
-                                            Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
-                                                .font(.caption2)
-                                            Text(affirmation.isDraft ? "Draft" : "Complete")
-                                                .font(.caption2)
-                                        }
-                                        .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
-                                        
-                                        Text("•")
-                                            .font(.caption2)
-                                            .foregroundColor(.brandTextSecondary)
-                                        
-                                        Text(affirmation.createdAt, style: .date)
-                                            .font(.caption2)
-                                            .foregroundColor(.brandTextSecondary)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.brandTextSecondary)
-                            }
-                            .padding(.vertical, 6)
+                    Spacer()
+                    
+                    // Play All Button - only shows when there are playable affirmations
+                    if hasPlayableAffirmations {
+                        NavigationLink(value: PlayerDestination(list: list)) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundColor(.brandAccent)
+                                .shadow(color: Color.brandAccent.opacity(0.3), radius: 6, x: 0, y: 2)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .listRowBackground(Color.brandField)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        .transition(.opacity.combined(with: .scale))
                     }
-                    .onDelete(perform: deleteAffirmations)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(Color.brandBackground)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)  // Space for FAB
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .animation(.easeInOut(duration: 0.4), value: hasPlayableAffirmations)
+                
+                // MARK: - Content Area
+                if list.affirmations.isEmpty {
+                    // Empty state placeholder
+                    VStack(spacing: 16) {
+                        Spacer()
+                        
+                        Image(systemName: "waveform.circle")
+                            .font(.system(size: 60))
+                            .foregroundColor(.brandAccent.opacity(0.5))
+                        
+                        Text("No affirmations yet")
+                            .font(.headline)
+                            .foregroundColor(.brandText)
+                        
+                        Text("Tap '+' to record your first one")
+                            .font(.subheadline)
+                            .foregroundColor(.brandTextSecondary)
+                        
+                        Spacer()
+                    }
+                    .padding()
+                } else {
+                    // Affirmations list with swipe-to-delete
+                    List {
+                        ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
+                            Button(action: {
+                                affirmationToEdit = affirmation
+                            }) {
+                                HStack(spacing: 14) {
+                                    // Status Icon - Accent for complete, dimmed for draft
+                                    ZStack {
+                                        Circle()
+                                            .fill(affirmation.isDraft ? Color.brandField : Color.brandAccent.opacity(0.2))
+                                            .frame(width: 42, height: 42)
+                                        
+                                        Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        // Display first 20 characters of text property
+                                        Text(affirmation.displayName)
+                                            .font(.body.weight(.medium))
+                                            .foregroundColor(.brandText)
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        HStack(spacing: 8) {
+                                            // Status badge
+                                            HStack(spacing: 4) {
+                                                Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
+                                                    .font(.caption2)
+                                                Text(affirmation.isDraft ? "Draft" : "Complete")
+                                                    .font(.caption2)
+                                            }
+                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
+                                            
+                                            Text("•")
+                                                .font(.caption2)
+                                                .foregroundColor(.brandTextSecondary)
+                                            
+                                            Text(affirmation.createdAt, style: .date)
+                                                .font(.caption2)
+                                                .foregroundColor(.brandTextSecondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(.brandTextSecondary)
+                                }
+                                .padding(.vertical, 6)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .listRowBackground(Color.brandField)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        }
+                        .onDelete(perform: deleteAffirmations)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.brandBackground)
+                    .safeAreaInset(edge: .bottom) {
+                        Color.clear.frame(height: 80)  // Space for FAB
+                    }
                 }
             }
             
@@ -125,10 +157,11 @@ struct ListDetailView: View {
                 }
             }
         }
-        .navigationTitle(list.title)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.brandBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
+            // Three-dots menu only
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
@@ -183,6 +216,13 @@ struct ListDetailView: View {
         .sheet(item: $affirmationToEdit) { affirmation in
             AffirmationEditorView(list: list, existingAffirmation: affirmation)
         }
+    }
+    
+    // MARK: - Computed Properties
+    
+    /// Returns true if there are any affirmations with recorded audio
+    private var hasPlayableAffirmations: Bool {
+        list.affirmations.contains { !$0.isDraft }
     }
     
     // MARK: - Actions
