@@ -66,9 +66,9 @@ struct ListDetailView: View {
                     }
                     .padding()
                 } else {
-                    // Affirmations list with swipe-to-delete
+                    // Affirmations list with swipe-to-delete and drag-to-reorder
                     List {
-                        ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
+                        ForEach(sortedAffirmations) { affirmation in
                             Button(action: {
                                 affirmationToEdit = affirmation
                             }) {
@@ -125,6 +125,7 @@ struct ListDetailView: View {
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                         }
+                        .onMove(perform: moveAffirmations)
                         .onDelete(perform: deleteAffirmations)
                     }
                     .listStyle(.plain)
@@ -161,7 +162,13 @@ struct ListDetailView: View {
         .toolbarBackground(Color.brandBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
-            // Three-dots menu only
+            // Edit button for drag-to-reorder
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EditButton()
+                    .foregroundColor(.brandAccent)
+            }
+            
+            // Three-dots menu
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
@@ -220,16 +227,44 @@ struct ListDetailView: View {
     
     // MARK: - Computed Properties
     
+    /// Returns affirmations sorted by sortOrder (with createdAt as tiebreaker for existing records)
+    private var sortedAffirmations: [Affirmation] {
+        list.affirmations.sorted { first, second in
+            if first.sortOrder != second.sortOrder {
+                return first.sortOrder < second.sortOrder
+            }
+            // If sortOrder is the same (e.g., both 0 for existing records), use createdAt
+            return first.createdAt < second.createdAt
+        }
+    }
+    
     /// Returns true if there are any affirmations with recorded audio
     private var hasPlayableAffirmations: Bool {
         list.affirmations.contains { !$0.isDraft }
     }
     
     // MARK: - Actions
+    
+    /// Handles drag-and-drop reordering of affirmations
+    private func moveAffirmations(from source: IndexSet, to destination: Int) {
+        var reordered = sortedAffirmations
+        
+        // Move items in the array
+        reordered.move(fromOffsets: source, toOffset: destination)
+        
+        // Update sortOrder for all affirmations to reflect new order
+        for (index, affirmation) in reordered.enumerated() {
+            affirmation.sortOrder = index
+        }
+        
+        // Persist changes
+        try? modelContext.save()
+    }
+    
     private func deleteAffirmations(at offsets: IndexSet) {
-        let sortedAffirmations = list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })
+        let currentSorted = sortedAffirmations
         for index in offsets {
-            let affirmation = sortedAffirmations[index]
+            let affirmation = currentSorted[index]
             deleteAudioFile(for: affirmation)
             modelContext.delete(affirmation)
         }

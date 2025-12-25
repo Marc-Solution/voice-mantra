@@ -28,12 +28,17 @@ final class Affirmation {
     /// Unique filename of the recorded audio file (e.g., "550e8400.m4a")
     var audioFileName: String?
     var createdAt: Date = Date()
+    /// Sort order for manual reordering (lower = earlier)
+    var sortOrder: Int = 0
     var list: AffirmationList?
     
     init(text: String, audioFileName: String? = nil, list: AffirmationList? = nil) {
         self.text = text
         self.audioFileName = audioFileName
         self.list = list
+        // Initialize sortOrder based on createdAt timestamp (milliseconds since epoch)
+        // This ensures existing affirmations maintain their creation order
+        self.sortOrder = Int(Date().timeIntervalSince1970 * 1000)
     }
     
     /// Returns true if no audio has been recorded (text only)

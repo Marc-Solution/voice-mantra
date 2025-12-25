@@ -71,7 +71,14 @@ struct PlayerView: View {
     private var affirmations: [Affirmation] {
         list.affirmations
             .filter { !$0.isDraft }  // Only play affirmations with audio
-            .sorted(by: { $0.createdAt < $1.createdAt })
+            .sorted { first, second in
+                // Sort by sortOrder first (respects manual reordering)
+                if first.sortOrder != second.sortOrder {
+                    return first.sortOrder < second.sortOrder
+                }
+                // If sortOrder is the same, use createdAt as tiebreaker
+                return first.createdAt < second.createdAt
+            }
     }
     
     private var currentAffirmation: Affirmation? {
