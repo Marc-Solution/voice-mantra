@@ -17,6 +17,9 @@ struct HomeView: View {
     @State private var navigationPath = NavigationPath()
     @State private var pendingNavigationList: AffirmationList? = nil
     
+    /// Streak manager for stats display
+    @StateObject private var streakManager = StreakManager.shared
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -100,41 +103,57 @@ struct HomeView: View {
                             }
                         }
                         
-                        // Quick stats
+                        // Stats: Streak & Total Time
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Stats")
+                            Text("Your Progress")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.brandTextSecondary)
                                 .padding(.horizontal, 20)
                             
                             HStack(spacing: 12) {
-                                // Lists stat
-                                VStack(spacing: 6) {
-                                    Text("\(lists.count)")
+                                // Streak card
+                                VStack(spacing: 8) {
+                                    // Flame icon
+                                    Image(systemName: "flame.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(streakManager.currentStreak > 0 ? .brandAccent : .brandTextSecondary)
+                                    
+                                    // Streak count
+                                    Text("\(streakManager.currentStreak)")
                                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                                        .foregroundColor(.brandAccent)
-                                    Text("Lists")
+                                        .foregroundColor(streakManager.currentStreak > 0 ? .brandAccent : .brandTextSecondary)
+                                    
+                                    Text("Day Streak")
                                         .font(.caption)
                                         .foregroundColor(.brandTextSecondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 20)
+                                .padding(.vertical, 16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
                                         .fill(Color.brandField)
                                 )
                                 
-                                // Affirmations stat
-                                VStack(spacing: 6) {
-                                    Text("\(totalAffirmations)")
+                                // Total Time card
+                                VStack(spacing: 8) {
+                                    // Clock icon
+                                    Image(systemName: "clock.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.brandAccent)
+                                    
+                                    // Time display
+                                    Text(streakManager.formattedTotalTime)
                                         .font(.system(size: 28, weight: .bold, design: .rounded))
                                         .foregroundColor(.brandAccent)
-                                    Text("Affirmations")
+                                        .minimumScaleFactor(0.7)
+                                        .lineLimit(1)
+                                    
+                                    Text("Total Time")
                                         .font(.caption)
                                         .foregroundColor(.brandTextSecondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 20)
+                                .padding(.vertical, 16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
                                         .fill(Color.brandField)
@@ -190,11 +209,6 @@ struct HomeView: View {
                 }
             }
         }
-    }
-    
-    // MARK: - Computed Properties
-    private var totalAffirmations: Int {
-        lists.reduce(0) { $0 + $1.affirmations.count }
     }
     
     // Note: List deletion is handled via the "..." menu in ListDetailView,

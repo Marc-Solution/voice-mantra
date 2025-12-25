@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import AVFoundation
+import UIKit  // For haptic feedback
 
 /// Wrapper type for programmatic navigation to PlayerView
 struct PlayerDestination: Hashable {
@@ -53,6 +54,18 @@ struct PlayerView: View {
     
     /// Strong reference to AudioService
     @StateObject private var audioService = AudioService.shared
+    
+    /// Streak manager for recording completions
+    @StateObject private var streakManager = StreakManager.shared
+    
+    /// Toast visibility state
+    @State private var showStreakToast: Bool = false
+    
+    /// Track session start time for duration calculation
+    @State private var sessionStartTime: Date?
+    
+    /// Accumulated session duration
+    @State private var sessionDuration: TimeInterval = 0
     
     // MARK: - Computed Properties
     private var affirmations: [Affirmation] {
@@ -207,8 +220,9 @@ struct PlayerView: View {
             autoStartPlayback()
         }
         .onDisappear {
-            stopPlayback()
+            stopPlaybackAndRecordSession()
         }
+        .streakToast(isShowing: $showStreakToast, streakCount: streakManager.currentStreak)
     }
     
     // MARK: - Auto-Start Logic
@@ -241,7 +255,7 @@ struct PlayerView: View {
     
     private func togglePlayback() {
         if isActive {
-            stopPlayback()
+            stopPlaybackAndRecordSession()
         } else {
             startPlaybackSequence()
         }
@@ -251,6 +265,10 @@ struct PlayerView: View {
     private func startPlaybackSequence() {
         // Cancel any existing task
         playbackTask?.cancel()
+        
+        // Record session start time
+        sessionStartTime = Date()
+        sessionDuration = 0
         
         playbackTask = Task {
             await playSequence()
@@ -404,6 +422,41 @@ struct PlayerView: View {
         playbackState = .stopped
         isLoopingBack = false
         print("⏹️ Playback stopped by user")
+    }
+    
+    /// Stops playback and records the session to streak manager
+    private func stopPlaybackAndRecordSession() {
+        // Calculate session duration
+        if let startTime = sessionStartTime {
+            sessionDuration = Date().timeIntervalSince(startTime)
+        }
+        
+        // Stop playback
+        stopPlayback()
+        
+        // Only record if we actually had a meaningful session (> 5 seconds)
+        if sessionDuration > 5 {
+            let streakIncreased = streakManager.recordCompletion(duration: sessionDuration)
+            
+            if streakIncreased {
+                // Trigger haptic feedback
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.notificationOccurred(.success)
+                
+                // Show celebration toast
+                showStreakToast = true
+                
+                print("🎉 Session completed! Duration: \(Int(sessionDuration))s, Streak: \(streakManager.currentStreak)")
+            } else {
+                print("📝 Session recorded (same day). Duration: \(Int(sessionDuration))s")
+            }
+        } else {
+            print("⏹️ Session too short to count (\(Int(sessionDuration))s)")
+        }
+        
+        // Reset session tracking
+        sessionStartTime = nil
+        sessionDuration = 0
     }
     
 }
