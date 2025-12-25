@@ -90,7 +90,8 @@ struct HomeView: View {
                                         .listRowSeparator(.hidden)
                                         .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                                     }
-                                    .onDelete(perform: deleteLists)
+                                    // Note: Swipe-to-delete disabled for lists to prevent accidents.
+                                    // Lists can only be deleted via the "..." menu inside ListDetailView.
                                 }
                                 .listStyle(.plain)
                                 .scrollContentBackground(.hidden)
@@ -196,26 +197,8 @@ struct HomeView: View {
         lists.reduce(0) { $0 + $1.affirmations.count }
     }
     
-    // MARK: - Actions
-    private func deleteLists(at offsets: IndexSet) {
-        for index in offsets {
-            let list = lists[index]
-            // Delete associated audio files
-            for affirmation in list.affirmations {
-                deleteAudioFile(for: affirmation)
-            }
-            modelContext.delete(list)
-        }
-        // Explicitly save to persist deletion
-        try? modelContext.save()
-    }
-    
-    private func deleteAudioFile(for affirmation: Affirmation) {
-        guard let fileName = affirmation.audioFileName else { return }
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = documentsPath.appendingPathComponent(fileName)
-        try? FileManager.default.removeItem(at: fileURL)
-    }
+    // Note: List deletion is handled via the "..." menu in ListDetailView,
+    // which includes proper confirmation dialogs and audio file cleanup.
 }
 
 // Preview
