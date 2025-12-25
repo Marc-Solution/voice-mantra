@@ -70,7 +70,7 @@ struct PlayerView: View {
     // MARK: - Computed Properties
     private var affirmations: [Affirmation] {
         list.affirmations
-            .filter { !$0.isDraft }  // Only play affirmations with audio
+            .filter { !$0.isDraft && !$0.isMuted }  // Only play affirmations with audio that are not muted
             .sorted { first, second in
                 // Sort by sortOrder first (respects manual reordering)
                 if first.sortOrder != second.sortOrder {

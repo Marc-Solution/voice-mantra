@@ -30,6 +30,8 @@ final class Affirmation {
     var createdAt: Date = Date()
     /// Sort order for manual reordering (lower = earlier)
     var sortOrder: Int = 0
+    /// Whether this affirmation is muted (skipped during playback)
+    var isMuted: Bool = false
     var list: AffirmationList?
     
     init(text: String, audioFileName: String? = nil, list: AffirmationList? = nil) {
