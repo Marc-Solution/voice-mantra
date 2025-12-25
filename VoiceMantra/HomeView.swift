@@ -55,8 +55,8 @@ struct HomeView: View {
                                 )
                                 .padding(.horizontal, 16)
                             } else {
-                                // List cards
-                                VStack(spacing: 10) {
+                                // List cards with swipe-to-delete
+                                List {
                                     ForEach(lists) { list in
                                         HStack(spacing: 14) {
                                             // Play button
@@ -73,34 +73,29 @@ struct HomeView: View {
                                             .buttonStyle(BorderlessButtonStyle())
                                             
                                             // NavigationLink for list detail
+                                            // Note: NavigationLink in List auto-adds chevron, don't add manually
                                             NavigationLink(value: list) {
-                                                HStack {
-                                                    VStack(alignment: .leading, spacing: 4) {
-                                                        Text(list.title)
-                                                            .font(.body.weight(.medium))
-                                                            .foregroundColor(.brandText)
-                                                        Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
-                                                            .font(.caption)
-                                                            .foregroundColor(.brandTextSecondary)
-                                                    }
-                                                    
-                                                    Spacer()
-                                                    
-                                                    Image(systemName: "chevron.right")
-                                                        .font(.caption.weight(.semibold))
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(list.title)
+                                                        .font(.body.weight(.medium))
+                                                        .foregroundColor(.brandText)
+                                                    Text("\(list.affirmations.count) affirmation\(list.affirmations.count == 1 ? "" : "s")")
+                                                        .font(.caption)
                                                         .foregroundColor(.brandTextSecondary)
                                                 }
                                             }
                                         }
-                                        .padding(14)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.brandField)
-                                        )
+                                        .padding(.vertical, 6)
+                                        .listRowBackground(Color.brandField)
+                                        .listRowSeparator(.hidden)
+                                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                                     }
                                     .onDelete(perform: deleteLists)
                                 }
-                                .padding(.horizontal, 16)
+                                .listStyle(.plain)
+                                .scrollContentBackground(.hidden)
+                                .background(Color.brandBackground)
+                                .frame(minHeight: CGFloat(lists.count) * 80)  // Dynamic height
                             }
                         }
                         

@@ -35,71 +35,72 @@ struct ListDetailView: View {
                 }
                 .padding()
             } else {
-                // Affirmations list
-                ScrollView {
-                    VStack(spacing: 10) {
-                        ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
-                            Button(action: {
-                                affirmationToEdit = affirmation
-                            }) {
-                                HStack(spacing: 14) {
-                                    // Status Icon - Accent for complete, dimmed for draft
-                                    ZStack {
-                                        Circle()
-                                            .fill(affirmation.isDraft ? Color.brandField : Color.brandAccent.opacity(0.2))
-                                            .frame(width: 42, height: 42)
-                                        
-                                        Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
-                                            .font(.system(size: 16, weight: .medium))
-                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
-                                    }
+                // Affirmations list with swipe-to-delete
+                List {
+                    ForEach(list.affirmations.sorted(by: { $0.createdAt < $1.createdAt })) { affirmation in
+                        Button(action: {
+                            affirmationToEdit = affirmation
+                        }) {
+                            HStack(spacing: 14) {
+                                // Status Icon - Accent for complete, dimmed for draft
+                                ZStack {
+                                    Circle()
+                                        .fill(affirmation.isDraft ? Color.brandField : Color.brandAccent.opacity(0.2))
+                                        .frame(width: 42, height: 42)
                                     
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        // Display first 20 characters of text property
-                                        Text(affirmation.displayName)
-                                            .font(.body.weight(.medium))
-                                            .foregroundColor(.brandText)
-                                            .lineLimit(2)
-                                            .multilineTextAlignment(.leading)
-                                        
-                                        HStack(spacing: 8) {
-                                            // Status badge
-                                            HStack(spacing: 4) {
-                                                Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
-                                                    .font(.caption2)
-                                                Text(affirmation.isDraft ? "Draft" : "Complete")
-                                                    .font(.caption2)
-                                            }
-                                            .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
-                                            
-                                            Text("•")
-                                                .font(.caption2)
-                                                .foregroundColor(.brandTextSecondary)
-                                            
-                                            Text(affirmation.createdAt, style: .date)
-                                                .font(.caption2)
-                                                .foregroundColor(.brandTextSecondary)
-                                        }
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(.brandTextSecondary)
+                                    Image(systemName: affirmation.isDraft ? "mic.badge.plus" : "mic.fill")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
                                 }
-                                .padding(14)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.brandField)
-                                )
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Display first 20 characters of text property
+                                    Text(affirmation.displayName)
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(.brandText)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    HStack(spacing: 8) {
+                                        // Status badge
+                                        HStack(spacing: 4) {
+                                            Image(systemName: affirmation.isDraft ? "doc.text" : "checkmark.circle.fill")
+                                                .font(.caption2)
+                                            Text(affirmation.isDraft ? "Draft" : "Complete")
+                                                .font(.caption2)
+                                        }
+                                        .foregroundColor(affirmation.isDraft ? .brandTextSecondary : .brandAccent)
+                                        
+                                        Text("•")
+                                            .font(.caption2)
+                                            .foregroundColor(.brandTextSecondary)
+                                        
+                                        Text(affirmation.createdAt, style: .date)
+                                            .font(.caption2)
+                                            .foregroundColor(.brandTextSecondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.brandTextSecondary)
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .padding(.vertical, 6)
                         }
+                        .buttonStyle(PlainButtonStyle())
+                        .listRowBackground(Color.brandField)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    .padding(.bottom, 100)  // Space for FAB
+                    .onDelete(perform: deleteAffirmations)
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(Color.brandBackground)
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 80)  // Space for FAB
                 }
             }
             
