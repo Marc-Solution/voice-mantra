@@ -44,8 +44,6 @@ struct PlayerView: View {
     // MARK: - State
     @State private var currentIndex: Int = 0
     @State private var playbackState: PlaybackState = .stopped
-    @State private var pauseCountdown: Int = 10
-    @State private var countdownTimer: Timer?
     @State private var isLoopingBack: Bool = false  // True when about to restart from beginning
     @State private var showingMixer: Bool = false   // Mixer sheet visibility
     
@@ -330,7 +328,6 @@ struct PlayerView: View {
             
             // 10-second reflection pause (always, including before looping back)
             playbackState = .pauseBetween
-            pauseCountdown = 10
             
             // Check if we're at the last affirmation (about to loop)
             isLoopingBack = currentIndex >= affirmations.count - 1
@@ -341,20 +338,14 @@ struct PlayerView: View {
                 print("⏸️ 10-second reflection pause before next affirmation...")
             }
             
-            // Start countdown timer for UI
-            startCountdownTimer()
-            
             // Wait 10 seconds for user reflection
             do {
                 try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
             } catch {
                 // Task was cancelled
                 print("⏹️ Sleep interrupted - playback stopped")
-                stopCountdownTimer()
                 return
             }
-            
-            stopCountdownTimer()
             
             // Check for cancellation after sleep
             if Task.isCancelled {
@@ -395,29 +386,10 @@ struct PlayerView: View {
         }
     }
     
-    /// Starts the countdown timer for UI feedback
-    private func startCountdownTimer() {
-        stopCountdownTimer()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if pauseCountdown > 1 {
-                pauseCountdown -= 1
-            }
-        }
-    }
-    
-    /// Stops the countdown timer
-    private func stopCountdownTimer() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-    }
-    
     private func stopPlayback() {
         // Cancel the playback task
         playbackTask?.cancel()
         playbackTask = nil
-        
-        // Stop countdown
-        stopCountdownTimer()
         
         // Stop any playing audio
         audioService.stopListPlayback()
