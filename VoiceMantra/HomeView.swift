@@ -12,16 +12,16 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \AffirmationList.createdAt, order: .forward) private var lists: [AffirmationList]
-    
-    @State private var showCreateList = false
-    @State private var navigationPath = NavigationPath()
-    @State private var pendingNavigationList: AffirmationList? = nil
+
+  @State private var showCreateList = false
+  @State private var navigationPath = NavigationPath()
+  @State private var pendingNavigationList: AffirmationList? = nil
     
     /// Streak manager for stats display
     @StateObject private var streakManager = StreakManager.shared
-    
-    var body: some View {
-        NavigationStack(path: $navigationPath) {
+
+  var body: some View {
+    NavigationStack(path: $navigationPath) {
             ZStack {
                 // Brand background
                 Color.brandBackground.ignoresSafeArea()
@@ -90,14 +90,14 @@ struct HomeView: View {
             .navigationTitle("MantraFlow")
             .toolbarBackground(Color.brandBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationDestination(for: AffirmationList.self) { list in
-                ListDetailView(list: list)
-            }
-            .navigationDestination(for: PlayerDestination.self) { destination in
+      .navigationDestination(for: AffirmationList.self) { list in
+        ListDetailView(list: list)
+      }
+      .navigationDestination(for: PlayerDestination.self) { destination in
                 PlayerView(list: destination.list)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+      }
+      .toolbar {
+        ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showCreateList = true }) {
                         HStack(spacing: 6) {
                             Image(systemName: "plus")
@@ -114,19 +114,24 @@ struct HomeView: View {
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
+        }
+      }
+      .sheet(isPresented: $showCreateList, onDismiss: {
+        if let newList = pendingNavigationList {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            navigationPath.append(newList)
+            pendingNavigationList = nil
+          }
+        }
+      }) {
+                CreateListView(isPresented: $showCreateList) { createdList in
+          pendingNavigationList = createdList
                 }
             }
-            .sheet(isPresented: $showCreateList, onDismiss: {
-                if let newList = pendingNavigationList {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        navigationPath.append(newList)
-                        pendingNavigationList = nil
-                    }
-                }
-            }) {
-                CreateListView(isPresented: $showCreateList) { createdList in
-                    pendingNavigationList = createdList
-                }
+            .onAppear {
+                // Check and reset streak if a full calendar day was missed
+                // This ensures the UI updates immediately when the app opens or stays open across midnight
+                streakManager.checkAndResetStreak()
             }
         }
     }

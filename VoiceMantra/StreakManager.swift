@@ -37,7 +37,7 @@ final class StreakManager: ObservableObject {
     // MARK: - Initialization
     private init() {
         loadPersistedData()
-        checkStreakOnLaunch()
+        checkAndResetStreak()
     }
     
     // MARK: - Persistence
@@ -59,8 +59,10 @@ final class StreakManager: ObservableObject {
     
     // MARK: - Streak Logic
     
-    /// Checks streak on app launch and resets if 2+ days have passed
-    private func checkStreakOnLaunch() {
+    /// Checks if the streak should be reset based on last completion date
+    /// Resets to 0 if a full calendar day has been missed (lastCompletionDate is older than yesterday)
+    /// This should be called on app launch and when the view appears to handle midnight crossing
+    func checkAndResetStreak() {
         guard let lastDate = lastSessionDate else {
             // No previous session - streak remains 0
             return
@@ -69,8 +71,8 @@ final class StreakManager: ObservableObject {
         let daysDifference = daysBetween(lastDate, and: Date())
         
         if daysDifference >= 2 {
-            // Streak broken - reset to 0
-            print("💔 Streak broken! \(daysDifference) days since last session. Resetting streak.")
+            // Streak broken - a full calendar day was missed, reset to 0
+            print("💔 Streak broken! \(daysDifference) days since last session. Resetting streak to 0.")
             currentStreak = 0
             save()
         } else {
