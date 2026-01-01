@@ -33,13 +33,16 @@ struct PlayerDestination: Hashable {
 enum PlaybackState: Equatable {
     case stopped
     case playing
-    case pauseBetween  // 10-second reflection pause between affirmations
+    case pauseBetween  // Configurable reflection pause between affirmations
 }
 
 struct PlayerView: View {
   @Environment(\.dismiss) private var dismiss
   
   let list: AffirmationList
+  
+    // MARK: - AppStorage
+    @AppStorage("reflectionPause") private var reflectionPause: Int = 10
   
     // MARK: - State
     @State private var currentIndex: Int = 0
@@ -333,14 +336,14 @@ struct PlayerView: View {
             isLoopingBack = currentIndex >= affirmations.count - 1
             if isLoopingBack {
                 print("🔄 Loop Restarting: Moving from last affirmation back to the beginning.")
-                print("⏸️ 10-second reflection pause before restarting loop...")
+                print("⏸️ \(reflectionPause)-second reflection pause before restarting loop...")
             } else {
-                print("⏸️ 10-second reflection pause before next affirmation...")
+                print("⏸️ \(reflectionPause)-second reflection pause before next affirmation...")
             }
             
-            // Wait 10 seconds for user reflection
+            // Wait for user reflection (configurable duration)
             do {
-                try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
+                try await Task.sleep(nanoseconds: UInt64(reflectionPause) * 1_000_000_000)
             } catch {
                 // Task was cancelled
                 print("⏹️ Sleep interrupted - playback stopped")

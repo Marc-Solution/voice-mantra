@@ -40,6 +40,15 @@ final class AudioService: NSObject, ObservableObject {
     // MARK: - Published Properties (Macro-Loop Progress)
     @Published var macroProgress: Double = 0.0   // 0.0 to 1.0 for entire loop
     
+    // MARK: - User Settings (from UserDefaults)
+    /// Reflection pause duration in seconds (synced with Settings)
+    private var reflectionPause: Double {
+        UserDefaults.standard.object(forKey: "reflectionPause") as? Double 
+            ?? Double(UserDefaults.standard.integer(forKey: "reflectionPause") != 0 
+                ? UserDefaults.standard.integer(forKey: "reflectionPause") 
+                : 10)
+    }
+    
     // MARK: - Private Properties (Macro-Loop Tracking)
     private var macroLoopStartTime: Date?
     private var totalLoopDuration: TimeInterval = 0
@@ -166,7 +175,7 @@ final class AudioService: NSObject, ObservableObject {
     
     // MARK: - Macro-Loop Progress Tracking
     
-    /// Calculates total loop duration: sum of audio durations + (count * 10 seconds gap)
+    /// Calculates total loop duration: sum of audio durations + (count * reflection pause gap)
     /// - Parameter audioURLs: Array of audio file URLs in the list
     /// - Returns: Total duration in seconds
     func calculateTotalLoopDuration(audioURLs: [URL]) -> TimeInterval {
@@ -178,11 +187,11 @@ final class AudioService: NSObject, ObservableObject {
             }
         }
         
-        // Add 10-second gap for each audio file
-        let gapDuration = TimeInterval(audioURLs.count) * 10.0
+        // Add reflection pause gap for each audio file (configurable via Settings)
+        let gapDuration = TimeInterval(audioURLs.count) * reflectionPause
         let total = totalAudioDuration + gapDuration
         
-        print("📊 Total Loop Duration: \(String(format: "%.1f", total))s (Audio: \(String(format: "%.1f", totalAudioDuration))s + Gaps: \(String(format: "%.1f", gapDuration))s)")
+        print("📊 Total Loop Duration: \(String(format: "%.1f", total))s (Audio: \(String(format: "%.1f", totalAudioDuration))s + Gaps: \(String(format: "%.1f", gapDuration))s @ \(Int(reflectionPause))s each)")
         
         return total
     }

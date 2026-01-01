@@ -14,6 +14,7 @@ struct HomeView: View {
     @Query(sort: \AffirmationList.createdAt, order: .forward) private var lists: [AffirmationList]
 
   @State private var showCreateList = false
+  @State private var showSettings = false
   @State private var navigationPath = NavigationPath()
   @State private var pendingNavigationList: AffirmationList? = nil
     
@@ -97,6 +98,13 @@ struct HomeView: View {
                 PlayerView(list: destination.list)
       }
       .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button(action: { showSettings = true }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.brandAccent)
+            }
+        }
         ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showCreateList = true }) {
                         HStack(spacing: 6) {
@@ -128,6 +136,9 @@ struct HomeView: View {
           pendingNavigationList = createdList
                 }
             }
+      .sheet(isPresented: $showSettings) {
+          SettingsView()
+      }
             .onAppear {
                 // Check and reset streak if a full calendar day was missed
                 // This ensures the UI updates immediately when the app opens or stays open across midnight
