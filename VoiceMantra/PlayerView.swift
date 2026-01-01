@@ -2,15 +2,16 @@
 //  PlayerView.swift
 //  MantraFlow
 //
-//  Created for MantraFlow
+//  Main playback screen for affirmation sessions.
+//  Follows Apple's 2026 MVVM architecture with @Observable.
 //
 
 import SwiftUI
 import SwiftData
-import AVFoundation
-import UIKit  // For haptic feedback
 
-/// Wrapper type for programmatic navigation to PlayerView
+// MARK: - Navigation Destination
+
+/// Type-safe navigation wrapper for PlayerView
 struct PlayerDestination: Hashable {
     let listId: PersistentIdentifier
   let list: AffirmationList
@@ -29,94 +30,67 @@ struct PlayerDestination: Hashable {
     }
 }
 
-/// Playback state for the player
-enum PlaybackState: Equatable {
-    case stopped
-    case playing
-    case pauseBetween  // Configurable reflection pause between affirmations
-}
+// MARK: - Player View
 
 struct PlayerView: View {
   @Environment(\.dismiss) private var dismiss
-  
-  let list: AffirmationList
-  
-    // MARK: - AppStorage
-    @AppStorage("reflectionPause") private var reflectionPause: Int = 10
-  
-    // MARK: - State
-    @State private var currentIndex: Int = 0
-    @State private var playbackState: PlaybackState = .stopped
-    @State private var isLoopingBack: Bool = false  // True when about to restart from beginning
-    @State private var showingMixer: Bool = false   // Mixer sheet visibility
+    @State private var viewModel: PlayerViewModel
     
-    /// Task that manages the entire playback sequence
-    @State private var playbackTask: Task<Void, Never>?
+    init(list: AffirmationList) {
+        _viewModel = State(initialValue: PlayerViewModel(list: list))
+    }
     
-    /// Strong reference to AudioService
-    @StateObject private var audioService = AudioService.shared
-    
-    /// Streak manager for recording completions
-    @StateObject private var streakManager = StreakManager.shared
-    
-    /// Toast visibility state
-    @State private var showStreakToast: Bool = false
-    
-    /// Track session start time for duration calculation
-    @State private var sessionStartTime: Date?
-    
-    /// Accumulated session duration
-    @State private var sessionDuration: TimeInterval = 0
-    
-    // MARK: - Computed Properties
-    private var affirmations: [Affirmation] {
-        list.affirmations
-            .filter { !$0.isDraft && !$0.isMuted }  // Only play affirmations with audio that are not muted
-            .sorted { first, second in
-                // Sort by sortOrder first (respects manual reordering)
-                if first.sortOrder != second.sortOrder {
-                    return first.sortOrder < second.sortOrder
-                }
-                // If sortOrder is the same, use createdAt as tiebreaker
-                return first.createdAt < second.createdAt
+    var body: some View {
+        ZStack {
+            BackgroundGradient()
+            VStack(spacing: 0) {
+                ProgressIndicator(viewModel: viewModel)
+                Spacer()
+                AffirmationDisplay(viewModel: viewModel)
+                Spacer()
+                PlaybackControls(viewModel: viewModel)
             }
+            .padding()
+        }
+        .navigationTitle("Now Playing: \(viewModel.list.title)")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.brandBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .sheet(isPresented: $viewModel.isShowingMixer) {
+            MixerSheetView(audioService: viewModel.audioService)
+        }
+        .onAppear(perform: viewModel.onViewAppear)
+        .onDisappear(perform: viewModel.onViewDisappear)
+        .streakToast(isShowing: $viewModel.isShowingStreakToast, streakCount: viewModel.currentStreak)
     }
-    
-    private var currentAffirmation: Affirmation? {
-        guard !affirmations.isEmpty, currentIndex < affirmations.count else { return nil }
-        return affirmations[currentIndex]
-    }
-    
-    /// True if actively playing audio or in pause-between state
-    private var isActive: Bool {
-        playbackState != .stopped
-  }
-  
+}
+
+// MARK: - Subviews
+
+private struct BackgroundGradient: View {
   var body: some View {
-    ZStack {
-      // Brand background with subtle gradient
       LinearGradient(
-        gradient: Gradient(colors: [
-          Color.brandBackground,
-          Color.brandBackground.opacity(0.95)
-        ]),
+            colors: [Color.brandBackground, Color.brandBackground.opacity(0.95)],
         startPoint: .top,
         endPoint: .bottom
       )
       .ignoresSafeArea()
+    }
+}
+
+private struct ProgressIndicator: View {
+    let viewModel: PlayerViewModel
       
-            VStack(spacing: 0) {
-                // MARK: - Fixed Top Section (Progress Indicator)
+    var body: some View {
                 VStack {
-                    if !affirmations.isEmpty {
+            if viewModel.hasPlayableContent {
                         HStack(spacing: 6) {
-                            Text("\(currentIndex + 1) of \(affirmations.count)")
+                    Text(viewModel.progressText)
                                 .font(.caption)
                                 .fontWeight(.medium)
-                            
-                            if isActive {
+                    if viewModel.isActive {
                                 Circle()
-                                    .fill(playbackState == .playing ? Color.brandAccent : Color.brandAccent.opacity(0.6))
+                            .fill(viewModel.playbackState == .playing ? Color.brandAccent : Color.brandAccent.opacity(0.6))
                                     .frame(width: 5, height: 5)
                             }
                         }
@@ -127,23 +101,24 @@ struct PlayerView: View {
                         .cornerRadius(12)
                     }
                 }
-                .frame(height: 60)  // Fixed height anchor
+        .frame(height: 60)
                 .padding(.top, 20)
+    }
+}
                 
-                // MARK: - Center Section (Affirmation Text - The Heart)
-                Spacer()
+private struct AffirmationDisplay: View {
+    let viewModel: PlayerViewModel
                 
-                // Fixed-height container to prevent layout jumping
+    var body: some View {
                 ZStack {
-                    // Invisible placeholder to maintain space
+            // Invisible placeholder to maintain consistent height
                     Text(" ")
                         .font(.system(size: 32, weight: .regular, design: .serif))
                         .opacity(0)
                         .frame(minHeight: 120)
                     
-                    // Actual affirmation text (or empty during pause)
-                    if playbackState != .pauseBetween {
-                        if let affirmation = currentAffirmation {
+            if viewModel.playbackState != .pauseBetween {
+                if let affirmation = viewModel.currentAffirmation {
                             Text(affirmation.text)
                                 .font(.system(size: 32, weight: .regular, design: .serif))
                                 .foregroundColor(.brandText)
@@ -151,7 +126,7 @@ struct PlayerView: View {
                                 .lineSpacing(10)
                                 .padding(.horizontal, 28)
                                 .transition(.opacity)
-                        } else if affirmations.isEmpty {
+                } else if !viewModel.hasPlayableContent {
                             Text("No recorded affirmations")
                                 .font(.title2)
                                 .foregroundColor(.brandTextSecondary)
@@ -159,426 +134,82 @@ struct PlayerView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .animation(.easeInOut(duration: 0.4), value: playbackState)
-                .animation(.easeInOut(duration: 0.3), value: currentIndex)
-                
-        Spacer()
-                
-                // MARK: - Bottom Control Cluster
-                VStack(spacing: 28) {
-                    // Mixer Button - brand styled
-                    Button(action: { showingMixer = true }) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.brandField)
-                                .frame(width: 56, height: 56)
-                            
-                            Circle()
-                                .strokeBorder(Color.brandAccent.opacity(0.2), lineWidth: 1)
-                                .frame(width: 56, height: 56)
-                            
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundColor(.brandAccent)
-                        }
-                    }
-                    
-                    // Play/Stop button with Macro-Progress Ring
-                    ZStack {
-                        // Background track (subtle ring)
-                        Circle()
-                            .stroke(Color.brandField, lineWidth: 5)
-                            .frame(width: 108, height: 108)
-                        
-                        // Progress ring
-                        Circle()
-                            .trim(from: 0, to: audioService.macroProgress)
-                            .stroke(
-                                Color.brandAccent,
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                            )
-                            .frame(width: 108, height: 108)
-                            .rotationEffect(.degrees(-90))
-                            .animation(.linear(duration: 0.1), value: audioService.macroProgress)
-                        
-                        // Play/Stop button
-                        Button(action: togglePlayback) {
-                            Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 84))
-                                .foregroundColor(affirmations.isEmpty ? .brandTextSecondary : .brandAccent)
-                                .shadow(color: Color.brandAccent.opacity(isActive ? 0.3 : 0.15), radius: 10, x: 0, y: 4)
-                        }
-                        .disabled(affirmations.isEmpty)
-                    }
-                    .scaleEffect(isActive ? 1.03 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: isActive)
-                }
-                .padding(.bottom, 50)
-            }
-            .padding()
-        }
-        .navigationTitle("Now Playing: \(list.title)")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.brandBackground, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .sheet(isPresented: $showingMixer) {
-            MixerSheetView(audioService: audioService)
-        }
-        .onAppear {
-            autoStartPlayback()
-        }
-        .onDisappear {
-            stopPlaybackAndRecordSession()
-        }
-        .streakToast(isShowing: $showStreakToast, streakCount: streakManager.currentStreak)
+        .animation(.easeInOut(duration: 0.4), value: viewModel.playbackState)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentIndex)
     }
-    
-    // MARK: - Auto-Start Logic
-    
-    /// Automatically starts playback when the view appears (if not already playing)
-    private func autoStartPlayback() {
-        // Guard: Don't restart if already playing
-        guard !isActive else {
-            print("▶️ Already playing - continuing current playback")
-            return
-        }
-        
-        // Guard: Ensure we have affirmations with audio to play
-        guard !affirmations.isEmpty else {
-            print("⚠️ No affirmations with audio - auto-play skipped")
-            return
-        }
-        
-        // Start playback with a small delay for smooth navigation transition
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            // Double-check we haven't started playing during the delay
-            guard !isActive else { return }
-            
-            print("🚀 Auto-starting playback on view appear")
-            startPlaybackSequence()
-        }
-    }
-    
-    // MARK: - Playback Controls
-    
-    private func togglePlayback() {
-        if isActive {
-            stopPlaybackAndRecordSession()
-        } else {
-            startPlaybackSequence()
-        }
-    }
-    
-    /// Starts the async playback sequence
-    private func startPlaybackSequence() {
-        // Cancel any existing task
-        playbackTask?.cancel()
-        
-        // Record session start time
-        sessionStartTime = Date()
-        sessionDuration = 0
-        
-        playbackTask = Task {
-            await playSequence()
-        }
-    }
-    
-    /// Async function that plays through all affirmations in an infinite loop with 10-second reflection gaps
-    @MainActor
-    private func playSequence() async {
-        print("🎵 Starting infinite playback sequence from index \(currentIndex)")
-        
-        // Guard: Ensure list is not empty to prevent infinite crash loop
-        guard !affirmations.isEmpty else {
-            print("⚠️ Cannot start playback - no affirmations with audio")
-            playbackState = .stopped
-            return
-        }
-        
-        // Start all 4 channels (voice will be played per-affirmation)
-        audioService.playAllBackgroundTracks()
-        
-        // Start macro-progress tracking with all audio URLs
-        let audioURLs = affirmations.compactMap { $0.audioFileURL }
-        audioService.startMacroProgressTracking(audioURLs: audioURLs)
-        
-        // Infinite loop - plays until user stops
-        while true {
-            // Check for cancellation at start of each loop iteration
-            if Task.isCancelled {
-                print("⏹️ Playback sequence cancelled")
-                return
-            }
-            
-            // Play current affirmation
-            if let affirmation = affirmations[safe: currentIndex],
-               let url = affirmation.audioFileURL,
-               FileManager.default.fileExists(atPath: url.path) {
-                
-                playbackState = .playing
-                print("▶️ Playing affirmation \(currentIndex + 1)/\(affirmations.count): \(url.lastPathComponent)")
-                
-                await playAudio(url: url)
-                
-                // Check for cancellation after playback
-                if Task.isCancelled {
-                    print("⏹️ Playback sequence cancelled after audio finished")
-                    return
-                }
-            } else {
-                print("⚠️ Skipping index \(currentIndex) - no valid audio or file not found")
-            }
-            
-            // 10-second reflection pause (always, including before looping back)
-            playbackState = .pauseBetween
-            
-            // Check if we're at the last affirmation (about to loop)
-            isLoopingBack = currentIndex >= affirmations.count - 1
-            if isLoopingBack {
-                print("🔄 Loop Restarting: Moving from last affirmation back to the beginning.")
-                print("⏸️ \(reflectionPause)-second reflection pause before restarting loop...")
-            } else {
-                print("⏸️ \(reflectionPause)-second reflection pause before next affirmation...")
-            }
-            
-            // Wait for user reflection (configurable duration)
-            do {
-                try await Task.sleep(nanoseconds: UInt64(reflectionPause) * 1_000_000_000)
-            } catch {
-                // Task was cancelled
-                print("⏹️ Sleep interrupted - playback stopped")
-                return
-            }
-            
-            // Check for cancellation after sleep
-            if Task.isCancelled {
-                print("⏹️ Playback sequence cancelled during pause")
-                return
-            }
-            
-            // Move to next affirmation or loop back to beginning
-            if isLoopingBack {
-                currentIndex = 0
-                isLoopingBack = false  // Reset for next iteration
-                audioService.resetMacroProgress()  // Reset progress ring for new loop
-                print("🔁 Looped back to first affirmation")
-            } else {
-                currentIndex += 1
-            }
-        }
-    }
-    
-    /// Plays a single audio file and waits for completion
-    @MainActor
-    private func playAudio(url: URL) async {
-        await withCheckedContinuation { continuation in
-            // Configure audio session (NO .defaultToSpeaker with .playback category!)
-            do {
-                let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .default, options: [])
-                try session.setActive(true)
-                print("✅ Audio session configured for voice playback")
-            } catch {
-                print("⚠️ Audio session warning: \(error.localizedDescription)")
-            }
-            
-            // Use AudioService for robust playback
-            audioService.playAffirmation(url: url) {
-                continuation.resume()
-            }
-        }
-    }
-    
-    private func stopPlayback() {
-        // Cancel the playback task
-        playbackTask?.cancel()
-        playbackTask = nil
-        
-        // Stop any playing audio
-        audioService.stopListPlayback()
-        
-        // Stop macro progress tracking
-        audioService.stopMacroProgressTracking()
-        
-        // Reset state
-        playbackState = .stopped
-        isLoopingBack = false
-        print("⏹️ Playback stopped by user")
-    }
-    
-    /// Stops playback and records the session to streak manager
-    private func stopPlaybackAndRecordSession() {
-        // Calculate session duration
-        if let startTime = sessionStartTime {
-            sessionDuration = Date().timeIntervalSince(startTime)
-        }
-        
-        // Stop playback
-        stopPlayback()
-        
-        // Only record if we actually had a meaningful session (> 5 seconds)
-        if sessionDuration > 5 {
-            let streakIncreased = streakManager.recordCompletion(duration: sessionDuration)
-            
-            if streakIncreased {
-                // Trigger haptic feedback
-                let feedback = UINotificationFeedbackGenerator()
-                feedback.notificationOccurred(.success)
-                
-                // Show celebration toast
-                showStreakToast = true
-                
-                print("🎉 Session completed! Duration: \(Int(sessionDuration))s, Streak: \(streakManager.currentStreak)")
-            } else {
-                print("📝 Session recorded (same day). Duration: \(Int(sessionDuration))s")
-            }
-        } else {
-            print("⏹️ Session too short to count (\(Int(sessionDuration))s)")
-        }
-        
-        // Reset session tracking
-        sessionStartTime = nil
-        sessionDuration = 0
-    }
-    
 }
 
-// MARK: - Mixer Sheet View
-
-struct MixerSheetView: View {
-    @ObservedObject var audioService: AudioService
-    @Environment(\.dismiss) private var dismiss
+private struct PlaybackControls: View {
+    let viewModel: PlayerViewModel
     
     var body: some View {
-    NavigationStack {
+        VStack(spacing: 28) {
+            MixerButton(action: viewModel.showMixer)
+            PlayStopButton(viewModel: viewModel)
+        }
+        .padding(.bottom, 50)
+    }
+}
+
+private struct MixerButton: View {
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
             ZStack {
-                // Brand background
-                Color.brandBackground.ignoresSafeArea()
-                
-                VStack(spacing: 28) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("Audio Mixer")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.brandText)
-                        
-                        Text("Adjust the volume levels for each audio channel")
-                            .font(.caption)
-                            .foregroundColor(.brandTextSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 40)
-                    
-                    // Sliders with balanced spacing
-                    VStack(spacing: 22) {
-                        MixerSlider(
-                            label: "Voice",
-                            icon: "waveform",
-                            color: .brandAccent,
-                            value: Binding(
-                                get: { audioService.voiceVolume },
-                                set: { audioService.setVoiceVolume($0) }
-                            )
-                        )
-                        
-                        MixerSlider(
-                            label: "Music",
-                            icon: "music.note",
-                            color: .purple,
-                            value: Binding(
-                                get: { audioService.musicVolume },
-                                set: { audioService.setMusicVolume($0) }
-                            )
-                        )
-                        
-                        MixerSlider(
-                            label: "Nature",
-                            icon: "leaf.fill",
-                            color: .green,
-                            value: Binding(
-                                get: { audioService.natureVolume },
-                                set: { audioService.setNatureVolume($0) }
-                            )
-                        )
-                        
-                        MixerSlider(
-                            label: "Binaural",
-                            icon: "brain.head.profile",
-                            color: .orange,
-                            value: Binding(
-                                get: { audioService.binauralVolume },
-                                set: { audioService.setBinauralVolume($0) }
-                            )
-                        )
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    Spacer()
-                }
-                .padding()
-                .padding(.bottom, 80)  // Aggressive clearance from home gesture area
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
+                Circle()
+                    .fill(Color.brandField)
+                    .frame(width: 56, height: 56)
+                Circle()
+                    .strokeBorder(Color.brandAccent.opacity(0.2), lineWidth: 1)
+                    .frame(width: 56, height: 56)
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundColor(.brandAccent)
-                }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 }
 
-// MARK: - Mixer Slider Component
-
-struct MixerSlider: View {
-    let label: String
-    let icon: String
-    let color: Color
-    @Binding var value: Float
+private struct PlayStopButton: View {
+    let viewModel: PlayerViewModel
+    private let ringSize: CGFloat = 108
+    private let ringLineWidth: CGFloat = 5
+    private let buttonSize: CGFloat = 84
+    
+    /// Animation duration matches timer interval (0.05s = 20 FPS) for perfectly smooth motion
+    private let progressAnimationDuration: Double = 0.05
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Label row
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(color)
-                    .frame(width: 20)
-                
-                Text(label)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.brandText)
-            }
+        ZStack {
+            // Background track ring
+            Circle()
+                .stroke(Color.brandField, lineWidth: ringLineWidth)
+                .frame(width: ringSize, height: ringSize)
             
-            // Slider row with percentage vertically centered
-            HStack(spacing: 12) {
-                Slider(value: $value, in: 0...1, step: 0.05)
-                    .tint(color)
-                
-                Text("\(Int(value * 100))%")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.brandTextSecondary)
-                    .frame(width: 44, alignment: .trailing)
-                    .monospacedDigit()
+            // Animated progress ring - glides smoothly like a clock hand
+            Circle()
+                .trim(from: 0, to: viewModel.macroProgress)
+                .stroke(Color.brandAccent, style: StrokeStyle(lineWidth: ringLineWidth, lineCap: .round))
+                .frame(width: ringSize, height: ringSize)
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: progressAnimationDuration), value: viewModel.macroProgress)
+            
+            // Play/Stop button
+            Button(action: viewModel.togglePlayback) {
+                Image(systemName: viewModel.isActive ? "stop.circle.fill" : "play.circle.fill")
+                    .font(.system(size: buttonSize))
+                    .foregroundColor(viewModel.hasPlayableContent ? .brandAccent : .brandTextSecondary)
+                    .shadow(color: Color.brandAccent.opacity(viewModel.isActive ? 0.3 : 0.15), radius: 10, x: 0, y: 4)
             }
+            .disabled(!viewModel.hasPlayableContent)
         }
+        .scaleEffect(viewModel.isActive ? 1.03 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isActive)
     }
 }
 
-// MARK: - Safe Array Access
-extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}
+// MARK: - Preview
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
