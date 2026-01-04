@@ -153,6 +153,28 @@ final class PlayerViewModel {
         self.list = list
         self.audioService = audioService
         self.streakManager = streakManager
+        
+        // Configure audio session for background playback
+        configureAudioSessionForBackground()
+    }
+    
+    // MARK: - Audio Session Configuration
+    
+    /// Configures the audio session for background and lock-screen playback.
+    /// Must be called before any audio playback begins.
+    private func configureAudioSessionForBackground() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            
+            // .playback category enables background audio
+            // No options needed - this allows playback when app is backgrounded or screen is locked
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true)
+            
+            print("✅ Audio session configured for background playback")
+        } catch {
+            print("❌ Failed to configure audio session for background: \(error.localizedDescription)")
+        }
     }
     
     deinit {
@@ -400,21 +422,21 @@ final class PlayerViewModel {
     @MainActor
     private func playAudioFile(at url: URL) async {
         await withCheckedContinuation { continuation in
-            configureAudioSession()
+            ensureAudioSessionActive()
             audioService.playAffirmation(url: url) {
                 continuation.resume()
             }
         }
     }
     
-    /// Configures the audio session for playback
-    private func configureAudioSession() {
+    /// Re-activates the audio session before each audio file (safety reinforcement).
+    /// The session is initially configured in init() for background playback.
+    private func ensureAudioSessionActive() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [])
             try session.setActive(true)
         } catch {
-            print("⚠️ Audio session configuration warning: \(error.localizedDescription)")
+            print("⚠️ Audio session activation warning: \(error.localizedDescription)")
         }
     }
     
