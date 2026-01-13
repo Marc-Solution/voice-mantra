@@ -1,4 +1,4 @@
-# MantraFlow
+# Voice Mantra
 
 A beautifully designed iOS app for recording, managing, and playing personal affirmations with immersive audio experiences.
 
