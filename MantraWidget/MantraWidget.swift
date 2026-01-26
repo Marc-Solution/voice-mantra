@@ -45,14 +45,32 @@ struct MantraWidgetEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
-
-            Text("Favorite Emoji:")
-            Text(entry.configuration.favoriteEmoji)
+        HStack(spacing: 12) {
+            // Flame icon with glow
+            ZStack {
+                // Glow effect
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.brandAccent)
+                    .blur(radius: 6)
+                    .opacity(0.8)
+                
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.brandAccent)
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text("12 Days")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.brandText)
+                
+                Text("Streak")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.brandTextSecondary)
+            }
         }
-        .foregroundStyle(Color.brandAccent)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
