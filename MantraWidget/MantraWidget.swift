@@ -52,6 +52,7 @@ struct MantraWidgetEntryView : View {
             Text("Favorite Emoji:")
             Text(entry.configuration.favoriteEmoji)
         }
+        .foregroundStyle(Color.brandAccent)
     }
 }
 
@@ -61,7 +62,7 @@ struct MantraWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
             MantraWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(Color.brandBackground, for: .widget)
         }
     }
 }
