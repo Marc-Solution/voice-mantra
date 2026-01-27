@@ -42,7 +42,7 @@ struct AffirmationEditorView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         // MARK: - Text Input Section
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("Your Affirmation")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(.brandTextSecondary)
@@ -59,7 +59,10 @@ struct AffirmationEditorView: View {
                                 )
                                 .focused($isTextFieldFocused)
                         }
-                        .padding(.horizontal)
+                        .frame(maxWidth: 600, alignment: .center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                        // .padding(.horizontal)
                         
                         // MARK: - Recording Section
                         VStack(spacing: 20) {
