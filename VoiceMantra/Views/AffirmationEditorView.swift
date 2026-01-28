@@ -42,7 +42,7 @@ struct AffirmationEditorView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         // MARK: - Text Input Section
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Your Affirmation")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(.brandTextSecondary)
@@ -61,8 +61,9 @@ struct AffirmationEditorView: View {
                         }
                         .frame(maxWidth: 600, alignment: .center)
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                        // .padding(.horizontal)
+                       //.padding()
+                        .padding(.horizontal)
+                        //.padding(.bottom)
                         
                         // MARK: - Recording Section
                         VStack(spacing: 20) {
@@ -167,41 +168,44 @@ struct AffirmationEditorView: View {
                                 .fill(Color.brandField)
                         )
                         .padding(.horizontal)
-                        
-                        // MARK: - Save Section
-                        VStack(spacing: 12) {
-                            Button(action: save) {
-                                HStack {
-                                    if vm.willSaveAsDraft {
-                                        Image(systemName: "doc.text")
-                                        Text("Save as Draft")
-                                    } else {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Save Affirmation")
-                                    }
-                                }
-                                .font(.headline.weight(.semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(vm.canSave ? Color.brandAccent : Color.brandAccent.opacity(0.4))
-                                )
-                            }
-                            .disabled(!vm.canSave || vm.isRecording)
-                            
-                            if vm.willSaveAsDraft && vm.canSave {
-                                Text("No audio recorded. This will be saved as a draft.")
-                .font(.caption)
-                                    .foregroundColor(.brandTextSecondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 20)
                     }
                     .padding(.top, 16)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    // MARK: - Pinned Save Section
+                    VStack(spacing: 8) {
+                        Button(action: save) {
+                            HStack {
+                                if vm.willSaveAsDraft {
+                                    Image(systemName: "doc.text")
+                                    Text("Save as Draft")
+                                } else {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text("Save Affirmation")
+                                }
+                            }
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(vm.canSave ? Color.brandAccent : Color.brandAccent.opacity(0.4))
+                            )
+                        }
+                        .disabled(!vm.canSave || vm.isRecording)
+                        
+                        if vm.willSaveAsDraft && vm.canSave {
+                            Text("No audio recorded. This will be saved as a draft.")
+                                .font(.caption)
+                                .foregroundColor(.brandTextSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .frame(maxWidth: 600)
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
                 }
             }
             .navigationTitle(existingAffirmation == nil ? "New Affirmation" : "Edit Affirmation")
