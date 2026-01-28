@@ -13,15 +13,17 @@ import SwiftUI
 struct Provider: TimelineProvider {
 
     func placeholder(in context: Context) -> MantraWidgetEntry {
-        MantraWidgetEntry(date: Date())
+        MantraWidgetEntry(date: Date(), streak: 5)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MantraWidgetEntry) -> Void) {
-        completion(MantraWidgetEntry(date: Date()))
+        let streak = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")?.integer(forKey: "mantraflow_current_streak") ?? 0
+        completion(MantraWidgetEntry(date: Date(), streak: streak))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MantraWidgetEntry>) -> Void) {
-        let entry = MantraWidgetEntry(date: Date())
+        let streak = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")?.integer(forKey: "mantraflow_current_streak") ?? 0
+        let entry = MantraWidgetEntry(date: Date(), streak: streak)
         let timeline = Timeline(entries: [entry], policy: .atEnd)
         completion(timeline)
     }
@@ -31,6 +33,7 @@ struct Provider: TimelineProvider {
 
 struct MantraWidgetEntry: TimelineEntry {
     let date: Date
+    let streak: Int
 }
 
 // MARK: - Widget View
@@ -40,21 +43,23 @@ struct MantraWidgetEntryView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Flame icon with glow
+            // Flame icon with glow (glow is only visible when streak > 0)
             ZStack {
+                if entry.streak > 0 {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.brandAccent)
                     .blur(radius: 6)
-                    .opacity(0.8)
+                    .opacity(0.8)   }
 
                 Image(systemName: "flame.fill")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.brandAccent)
+             
             }
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("12 Days")
+                Text("\(entry.streak) Days")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.brandText)
 
@@ -85,5 +90,6 @@ struct MantraWidget: Widget {
 #Preview(as: .systemSmall) {
     MantraWidget()
 } timeline: {
-    MantraWidgetEntry(date: .now)
+    MantraWidgetEntry(date: .now, streak: 12)
+    MantraWidgetEntry(date: .now, streak: 0)
 }

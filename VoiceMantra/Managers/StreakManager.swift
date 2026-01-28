@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import WidgetKit
 
 /// Manages persistent streak data and total listening time
 final class StreakManager: ObservableObject {
@@ -32,6 +33,7 @@ final class StreakManager: ObservableObject {
     
     // MARK: - Private Properties
     private let defaults = UserDefaults.standard
+    private let sharedDefaults = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")
     private let calendar = Calendar.current
     
     // MARK: - Initialization
@@ -55,6 +57,12 @@ final class StreakManager: ObservableObject {
         defaults.set(currentStreak, forKey: Keys.currentStreak)
         defaults.set(lastSessionDate, forKey: Keys.lastSessionDate)
         defaults.synchronize()
+        
+        // Sync to shared container for widget
+        sharedDefaults?.set(currentStreak, forKey: Keys.currentStreak)
+        
+        // Reload widget
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Streak Logic
