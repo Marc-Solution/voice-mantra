@@ -8,77 +8,82 @@
 import WidgetKit
 import SwiftUI
 
+// MARK: - Timeline Provider
+
 struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), emoji: "😀")
+
+    func placeholder(in context: Context) -> MantraWidgetEntry {
+        MantraWidgetEntry(date: Date())
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), emoji: "😀")
-        completion(entry)
+    func getSnapshot(in context: Context, completion: @escaping (MantraWidgetEntry) -> Void) {
+        completion(MantraWidgetEntry(date: Date()))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [SimpleEntry] = []
-
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, emoji: "😀")
-            entries.append(entry)
-        }
-
-        let timeline = Timeline(entries: entries, policy: .atEnd)
+    func getTimeline(in context: Context, completion: @escaping (Timeline<MantraWidgetEntry>) -> Void) {
+        let entry = MantraWidgetEntry(date: Date())
+        let timeline = Timeline(entries: [entry], policy: .atEnd)
         completion(timeline)
     }
-
-//    func relevances() async -> WidgetRelevances<Void> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
 }
 
-struct SimpleEntry: TimelineEntry {
+// MARK: - Entry
+
+struct MantraWidgetEntry: TimelineEntry {
     let date: Date
-    let emoji: String
 }
 
-struct MantraWidgetEntryView : View {
-    var entry: Provider.Entry
+// MARK: - Widget View
+
+struct MantraWidgetEntryView: View {
+    let entry: MantraWidgetEntry
 
     var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
+        HStack(spacing: 12) {
+            // Flame icon with glow
+            ZStack {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.brandAccent)
+                    .blur(radius: 6)
+                    .opacity(0.8)
 
-            Text("Emoji:")
-            Text(entry.emoji)
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.brandAccent)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("12 Days")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.brandText)
+
+                Text("Streak")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.brandTextSecondary)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+// MARK: - Widget
 
 struct MantraWidget: Widget {
     let kind: String = "MantraWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            if #available(iOS 17.0, *) {
-                MantraWidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
-            } else {
-                MantraWidgetEntryView(entry: entry)
-                    .padding()
-                    .background()
-            }
+            MantraWidgetEntryView(entry: entry)
+                .containerBackground(Color.brandBackground, for: .widget)
         }
-        .configurationDisplayName("My Widget")
-        .description("This is an example widget.")
     }
 }
+
+// MARK: - Preview
 
 #Preview(as: .systemSmall) {
     MantraWidget()
 } timeline: {
-    SimpleEntry(date: .now, emoji: "😀")
-    SimpleEntry(date: .now, emoji: "🤩")
+    MantraWidgetEntry(date: .now)
 }
