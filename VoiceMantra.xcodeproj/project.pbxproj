@@ -390,7 +390,6 @@
 				CODE_SIGN_ENTITLEMENTS = VoiceMantra/App/VoiceMantra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceMantra/App/Info.plist;
@@ -426,7 +425,6 @@
 				CODE_SIGN_ENTITLEMENTS = VoiceMantra/VoiceMantraRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceMantra/App/Info.plist;
@@ -461,7 +459,6 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MantraWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MantraWidget;
@@ -493,7 +490,6 @@
 				CODE_SIGN_ENTITLEMENTS = MantraWidgetExtensionRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MantraWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MantraWidget;
