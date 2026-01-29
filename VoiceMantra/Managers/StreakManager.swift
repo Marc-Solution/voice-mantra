@@ -21,12 +21,14 @@ final class StreakManager: ObservableObject {
         static let totalTime = "mantraflow_total_time"
         static let lastSessionDate = "mantraflow_last_session_date"
         static let currentStreak = "mantraflow_current_streak"
+        static let todayTime = "mantraflow_today_time"
     }
     
     // MARK: - Published Properties
     @Published private(set) var totalTime: TimeInterval = 0
     @Published private(set) var currentStreak: Int = 0
     @Published private(set) var lastSessionDate: Date?
+    @Published private(set) var todayTime: TimeInterval = 0
     
     /// Indicates if the streak was just increased (for celebration trigger)
     @Published var streakJustIncreased: Bool = false
@@ -48,6 +50,7 @@ final class StreakManager: ObservableObject {
         totalTime = defaults.double(forKey: Keys.totalTime)
         currentStreak = defaults.integer(forKey: Keys.currentStreak)
         lastSessionDate = defaults.object(forKey: Keys.lastSessionDate) as? Date
+        todayTime = defaults.double(forKey: Keys.todayTime)
         
         print("📊 StreakManager loaded: Streak=\(currentStreak), TotalTime=\(formattedTotalTime), LastSession=\(lastSessionDate?.description ?? "Never")")
     }
@@ -56,11 +59,13 @@ final class StreakManager: ObservableObject {
         defaults.set(totalTime, forKey: Keys.totalTime)
         defaults.set(currentStreak, forKey: Keys.currentStreak)
         defaults.set(lastSessionDate, forKey: Keys.lastSessionDate)
+        defaults.set(todayTime, forKey: Keys.todayTime)
         defaults.synchronize()
         
         // Sync to shared container for widget
         sharedDefaults?.set(currentStreak, forKey: Keys.currentStreak)
         sharedDefaults?.set(totalTime, forKey: Keys.totalTime)
+        sharedDefaults?.set(todayTime, forKey: Keys.todayTime)
         
         // Reload widget
         WidgetCenter.shared.reloadAllTimelines()
@@ -78,6 +83,13 @@ final class StreakManager: ObservableObject {
         }
         
         let daysDifference = daysBetween(lastDate, and: Date())
+        
+        // Always reset todayTime if the last session was NOT today
+        if daysDifference > 0 {
+            print("🗓️ New day detected (\(daysDifference) day(s) since last session). Resetting todayTime to 0.")
+            todayTime = 0
+            save()
+        }
         
         if daysDifference >= 2 {
             // Streak broken - a full calendar day was missed, reset to 0
@@ -99,7 +111,8 @@ final class StreakManager: ObservableObject {
         
         // Always add to total time
         totalTime += duration
-        print("⏱️ Added \(Int(duration))s to total time. New total: \(formattedTotalTime)")
+        todayTime += duration
+        print("⏱️ Added \(Int(duration))s to total and today's time. New total: \(formattedTotalTime)")
         
         // Determine streak action based on last session date
         if let lastDate = lastSessionDate {

@@ -13,7 +13,7 @@ import SwiftUI
 struct Provider: TimelineProvider {
 
     func placeholder(in context: Context) -> MantraWidgetEntry {
-        MantraWidgetEntry(date: Date(), streak: 5, totalMinutes: 125)
+        MantraWidgetEntry(date: Date(), streak: 5, totalMinutes: 125, todayMinutes: 15)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MantraWidgetEntry) -> Void) {
@@ -21,8 +21,10 @@ struct Provider: TimelineProvider {
         let streak = defaults?.integer(forKey: "mantraflow_current_streak") ?? 0
         let totalTime = defaults?.double(forKey: "mantraflow_total_time") ?? 0
         let totalMinutes = Int(totalTime / 60)
+        let todayTime = defaults?.double(forKey: "mantraflow_today_time") ?? 0
+        let todayMinutes = Int(todayTime / 60)
         
-        completion(MantraWidgetEntry(date: Date(), streak: streak, totalMinutes: totalMinutes))
+        completion(MantraWidgetEntry(date: Date(), streak: streak, totalMinutes: totalMinutes, todayMinutes: todayMinutes))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MantraWidgetEntry>) -> Void) {
@@ -30,8 +32,10 @@ struct Provider: TimelineProvider {
         let streak = defaults?.integer(forKey: "mantraflow_current_streak") ?? 0
         let totalTime = defaults?.double(forKey: "mantraflow_total_time") ?? 0
         let totalMinutes = Int(totalTime / 60)
+        let todayTime = defaults?.double(forKey: "mantraflow_today_time") ?? 0
+        let todayMinutes = Int(todayTime / 60)
         
-        let entry = MantraWidgetEntry(date: Date(), streak: streak, totalMinutes: totalMinutes)
+        let entry = MantraWidgetEntry(date: Date(), streak: streak, totalMinutes: totalMinutes, todayMinutes: todayMinutes)
         let timeline = Timeline(entries: [entry], policy: .atEnd)
         completion(timeline)
     }
@@ -43,6 +47,7 @@ struct MantraWidgetEntry: TimelineEntry {
     let date: Date
     let streak: Int
     let totalMinutes: Int
+    let todayMinutes: Int
 }
 
 // MARK: - Widget View
@@ -52,54 +57,83 @@ struct MantraWidgetEntryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Row 1: Streak
-            HStack(spacing: 12) {
-                // Flame icon with glow (glow is only visible when streak > 0)
+            
+            //  Streak
+            HStack(spacing: 8) {
                 ZStack {
                     if entry.streak > 0 {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.brandAccent)
                             .blur(radius: 6)
-                            .opacity(0.8)
+                            .opacity(0.5)
                     }
-
                     Image(systemName: "flame.fill")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.brandAccent)
                 }
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("\(entry.streak) Days")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                HStack(spacing: 4) {
+                    Text("\(entry.streak) ")
+                        .font(.system(size:24, weight: .bold, design: .rounded))
                         .foregroundColor(.brandText)
-
-                    Text("Streak")
-                        .font(.system(size: 11, weight: .medium))
+                    Text("Days")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.brandTextSecondary)
                 }
             }
             
-            // Row 2: Total Minutes
-            HStack(spacing: 12) {
-                // Clock icon
-                Image(systemName: "clock.fill")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.brandAccent)
+            
+            //  Motivational Message
+            Text(entry.todayMinutes > 0 ? "Meditated today:" : "Time for your daily session?")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.brandAccent)
+            
+            // Today's Minutes if done today
+            if entry.todayMinutes > 0 {
+                VStack(spacing: 2) {
+                    HStack{
+                        
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.brandAccent)
+                        
+                        HStack(spacing: 4) {
+                            Text("\(entry.todayMinutes) ")
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.brandText)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("\(entry.totalMinutes) Mins")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(.brandText)
-
-                    Text("Total")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.brandTextSecondary)
+                            Text("Mins ")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.brandTextSecondary)
+                        }
+                        
+                    }
+                  
                 }
             }
+            
+
+
+            // Row 4: Total Minutes
+         //   HStack(spacing: 12) {
+         //       Image(systemName: "clock.fill")
+           //         .font(.system(size: 22, weight: .bold))
+             //       .foregroundColor(.brandAccent)
+//
+  //              VStack(alignment: .leading, spacing: 1) {
+    //                Text("\(entry.totalMinutes)")
+      //                  .font(.system(size: 15, weight: .bold, design: //.rounded))
+            //            .foregroundColor(.brandText)
+//
+  //                  Text("Mins Total")
+    //                    .font(.system(size: 11, weight: .medium))
+      //                  .foregroundColor(.brandTextSecondary)
+        //        }
+          //  }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(.leading, 8)
+        .padding(.leading, 4)
     }
 }
 
@@ -121,6 +155,6 @@ struct MantraWidget: Widget {
 #Preview(as: .systemSmall) {
     MantraWidget()
 } timeline: {
-    MantraWidgetEntry(date: .now, streak: 12, totalMinutes: 125)
-    MantraWidgetEntry(date: .now, streak: 0, totalMinutes: 45)
+    MantraWidgetEntry(date: .now, streak: 12, totalMinutes: 125, todayMinutes: 20)
+    MantraWidgetEntry(date: .now, streak: 0, totalMinutes: 45, todayMinutes: 0)
 }
