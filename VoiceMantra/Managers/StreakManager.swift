@@ -60,6 +60,7 @@ final class StreakManager: ObservableObject {
         
         // Sync to shared container for widget
         sharedDefaults?.set(currentStreak, forKey: Keys.currentStreak)
+        sharedDefaults?.set(totalTime, forKey: Keys.totalTime)
         
         // Reload widget
         WidgetCenter.shared.reloadAllTimelines()
