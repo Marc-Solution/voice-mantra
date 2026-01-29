@@ -44,7 +44,7 @@ For **both the app target and the widget target**:
 4. Use the following identifier exactly:
 
 ```text
-group.marcodeb.VoiceMantra.MantraWidget
+group.marcodeb.MantraFlow.MantraWidget
 ```
 
 > The string stays the same, but it will be created under **your own Apple team**.

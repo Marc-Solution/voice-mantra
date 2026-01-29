@@ -10,9 +10,9 @@ import SwiftUI
 
 @main
 struct MantraWidgetBundle: WidgetBundle {
-    var body: some Widget {
-        MantraWidget()
-        MantraWidgetControl()
-        MantraWidgetLiveActivity()
-    }
+  var body: some Widget {
+    MantraWidget()
+    MantraWidgetControl()
+    MantraWidgetLiveActivity()
+  }
 }

@@ -66,7 +66,7 @@ A beautifully designed iOS app for recording, managing, and playing personal aff
 
 2. **Open in Xcode**
    ```bash
-   open VoiceMantra.xcodeproj
+   open MantraFlow.xcodeproj
    ```
 
 3. **Build and run**
@@ -84,7 +84,7 @@ A beautifully designed iOS app for recording, managing, and playing personal aff
 ## 🏗️ Project Structure
 
 ```
-VoiceMantra/
+MantraFlow/
 ├── MantraFlowApp.swift      # App entry point & configuration
 ├── Models.swift             # SwiftData models (AffirmationList, Affirmation)
 ├── HomeView.swift           # Main list view with stats
