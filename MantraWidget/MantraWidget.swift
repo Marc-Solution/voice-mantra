@@ -113,24 +113,6 @@ struct MantraWidgetEntryView: View {
                 }
             }
             
-
-
-            // Row 4: Total Minutes
-         //   HStack(spacing: 12) {
-         //       Image(systemName: "clock.fill")
-           //         .font(.system(size: 22, weight: .bold))
-             //       .foregroundColor(.brandAccent)
-//
-  //              VStack(alignment: .leading, spacing: 1) {
-    //                Text("\(entry.totalMinutes)")
-      //                  .font(.system(size: 15, weight: .bold, design: //.rounded))
-            //            .foregroundColor(.brandText)
-//
-  //                  Text("Mins Total")
-    //                    .font(.system(size: 11, weight: .medium))
-      //                  .foregroundColor(.brandTextSecondary)
-        //        }
-          //  }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(.leading, 4)
