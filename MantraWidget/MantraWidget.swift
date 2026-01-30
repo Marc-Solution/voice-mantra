@@ -17,7 +17,7 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MantraWidgetEntry) -> Void) {
-        let defaults = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")
+        let defaults = UserDefaults(suiteName: "group.com.marcodeb.MantraFlow.SharedData")
         let streak = defaults?.integer(forKey: "mantraflow_current_streak") ?? 0
         let totalTime = defaults?.double(forKey: "mantraflow_total_time") ?? 0
         let totalMinutes = Int(totalTime / 60)
@@ -28,7 +28,7 @@ struct Provider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MantraWidgetEntry>) -> Void) {
-        let defaults = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")
+        let defaults = UserDefaults(suiteName: "group.com.marcodeb.MantraFlow.SharedData")
         let streak = defaults?.integer(forKey: "mantraflow_current_streak") ?? 0
         let totalTime = defaults?.double(forKey: "mantraflow_total_time") ?? 0
         let totalMinutes = Int(totalTime / 60)

@@ -38,6 +38,7 @@
 
 /* Begin PBXFileReference section */
 		A60C60772EF40DCB00040DD8 /* VoiceMantra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceMantra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A61B35592F2BDCFC006BC7C0 /* MantraWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MantraWidgetExtension.entitlements; sourceTree = "<group>"; };
 		F479392D2F2A1AB300632B91 /* MantraWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MantraWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F479392F2F2A1AB300632B91 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		F47939312F2A1AB300632B91 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -103,6 +104,7 @@
 		A60C606E2EF40DCA00040DD8 = {
 			isa = PBXGroup;
 			children = (
+				A61B35592F2BDCFC006BC7C0 /* MantraWidgetExtension.entitlements */,
 				F4F7B5C62F2A257A000F4F12 /* MantraWidgetExtensionRelease.entitlements */,
 				A60C60792EF40DCB00040DD8 /* VoiceMantra */,
 				F47939332F2A1AB300632B91 /* MantraWidget */,
@@ -390,7 +392,7 @@
 				CODE_SIGN_ENTITLEMENTS = VoiceMantra/App/VoiceMantra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
+				DEVELOPMENT_TEAM = N8SFCB64M6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceMantra/App/Info.plist;
@@ -426,7 +428,7 @@
 				CODE_SIGN_ENTITLEMENTS = VoiceMantra/VoiceMantraRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
+				DEVELOPMENT_TEAM = N8SFCB64M6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceMantra/App/Info.plist;
@@ -459,21 +461,22 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MantraWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
+				DEVELOPMENT_TEAM = N8SFCB64M6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MantraWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MantraWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.marcodeb.VoiceMantra.MantraWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marcodeb.VoiceMantra.MantraWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -493,12 +496,12 @@
 				CODE_SIGN_ENTITLEMENTS = MantraWidgetExtensionRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZTPP3QF79;
+				DEVELOPMENT_TEAM = N8SFCB64M6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MantraWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MantraWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

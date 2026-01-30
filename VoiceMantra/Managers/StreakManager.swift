@@ -35,7 +35,8 @@ final class StreakManager: ObservableObject {
     
     // MARK: - Private Properties
     private let defaults = UserDefaults.standard
-    private let sharedDefaults = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")
+    //private let sharedDefaults = UserDefaults(suiteName: "group.marcodeb.VoiceMantra.MantraWidget")
+    private let sharedDefaults = UserDefaults(suiteName: "group.com.marcodeb.MantraFlow.SharedData")
     private let calendar = Calendar.current
     
     // MARK: - Initialization
